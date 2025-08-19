@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/darkphotonKN/stripe-basic-approach/config"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 	router := config.SetupRoutes(db)
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "8000"
 	}
 
 	log.Printf("Server starting on port %s", port)
@@ -34,3 +34,4 @@ func main() {
 		log.Fatal("Failed to start server:", err)
 	}
 }
+

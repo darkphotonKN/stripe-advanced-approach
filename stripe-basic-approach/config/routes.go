@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/darkphotonKN/stripe-basic-approach/internal/user"
-	"github.com/darkphotonKN/stripe-basic-approach/internal/product"
 	"github.com/darkphotonKN/stripe-basic-approach/internal/middleware"
+	"github.com/darkphotonKN/stripe-basic-approach/internal/product"
+	"github.com/darkphotonKN/stripe-basic-approach/internal/user"
 )
 
 func SetupRoutes(db *sqlx.DB) *gin.Engine {
@@ -20,6 +20,8 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 
 	userHandler := user.NewHandler(userService)
 	productHandler := product.NewHandler(productService)
+
+	// stripeProcessor := payment.NewStripeProcessor()
 
 	api := router.Group("/api")
 	{
@@ -44,3 +46,4 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 
 	return router
 }
+
