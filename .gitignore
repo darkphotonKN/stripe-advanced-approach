@@ -1,0 +1,84 @@
+# Claude Code
+CLAUDE.md
+.claude/
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+bin/
+tmp/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Database
+*.sqlite
+*.sqlite3
+postgres_data/
+
+# Logs
+*.log
+
+# Coverage
+coverage.out
+coverage.html
+
+# Air (hot reload)
+.air.toml
+tmp/
+
+# Node.js (for frontend)
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js (for frontend)
+.next/
+out/
+build/
+dist/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production
+*.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+.DS_Store
+*.pem
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
