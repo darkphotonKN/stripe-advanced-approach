@@ -6,6 +6,7 @@ import (
 
 	"github.com/darkphotonKN/stripe-basic-approach/config"
 	"github.com/joho/godotenv"
+	"github.com/stripe/stripe-go/v82"
 )
 
 func main() {
@@ -23,6 +24,10 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
+	// setup stripe
+	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+
+	// setup routes
 	router := config.SetupRoutes(db)
 	port := os.Getenv("PORT")
 	if port == "" {

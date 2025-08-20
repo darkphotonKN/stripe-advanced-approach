@@ -2,7 +2,9 @@ package payment
 
 // Setup Products
 type SetupProductsReq struct {
-	Name string `json:"name"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Price       int64  `json:"price"`
 }
 
 type SetupProductsResponse struct {

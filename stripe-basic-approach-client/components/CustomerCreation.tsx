@@ -3,17 +3,18 @@
 import { useState, useEffect } from 'react';
 import { customerAPI } from '@/lib/api';
 
-interface CustomerLifecycleProps {
+interface CustomerCreationProps {
   onCustomerCreated: (customerId: string) => void;
+  enabled: boolean;
 }
 
-export default function CustomerLifecycle({ onCustomerCreated }: CustomerLifecycleProps) {
+export default function CustomerCreation({ onCustomerCreated, enabled }: CustomerCreationProps) {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedCustomerId = localStorage.getItem('customerId');
+    const storedCustomerId = localStorage.getItem('stripeCustomerId');
     if (storedCustomerId) {
       setCustomerId(storedCustomerId);
       onCustomerCreated(storedCustomerId);
@@ -26,7 +27,7 @@ export default function CustomerLifecycle({ onCustomerCreated }: CustomerLifecyc
     try {
       const data = await customerAPI.create();
       const newCustomerId = data.customer_id;
-      localStorage.setItem('customerId', newCustomerId);
+      localStorage.setItem('stripeCustomerId', newCustomerId);
       setCustomerId(newCustomerId);
       onCustomerCreated(newCustomerId);
     } catch (err) {
@@ -38,25 +39,27 @@ export default function CustomerLifecycle({ onCustomerCreated }: CustomerLifecyc
   };
 
   const resetCustomer = () => {
-    localStorage.removeItem('customerId');
+    localStorage.removeItem('stripeCustomerId');
     setCustomerId(null);
   };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Phase 1: Customer Lifecycle</h2>
+      <h2 className="text-2xl font-bold mb-4">Phase 2: Customer Creation</h2>
       
-      {!customerId ? (
+      {!enabled ? (
+        <p className="text-gray-500">Setup products first to enable customer creation</p>
+      ) : !customerId ? (
         <div>
           <p className="text-gray-600 mb-4">
-            Click to create a Stripe customer and enable payment features
+            Create a Stripe customer to enable payment operations
           </p>
           <button
             onClick={createCustomer}
             disabled={loading}
             className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
           >
-            {loading ? 'Creating...' : 'Enter App & Create Customer'}
+            {loading ? 'Creating...' : 'Fetch Customer ID'}
           </button>
         </div>
       ) : (

@@ -10,53 +10,75 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const customerId = localStorage.getItem('customerId');
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const customerId = localStorage.getItem('stripeCustomerId');
   if (customerId) {
     config.headers['X-Customer-Id'] = customerId;
   }
   return config;
 });
 
-export const customerAPI = {
-  create: async () => {
-    const response = await api.post('/customers');
+export const productAPI = {
+  setupProducts: async () => {
+    const response = await api.post('/setup-products');
     return response.data;
   },
-  get: async (customerId: string) => {
-    const response = await api.get(`/customers/${customerId}`);
+};
+
+export const customerAPI = {
+  create: async () => {
+    const response = await api.post('/create-customer');
     return response.data;
   },
 };
 
 export const paymentMethodAPI = {
-  createSetupIntent: async (customerId: string) => {
-    const response = await api.post('/payment-methods/setup-intent', {
+  saveCard: async (customerId: string) => {
+    const response = await api.post('/save-card', {
       customer_id: customerId,
     });
-    return response.data;
-  },
-  list: async (customerId: string) => {
-    const response = await api.get(`/payment-methods/${customerId}`);
-    return response.data;
-  },
-  detach: async (paymentMethodId: string) => {
-    const response = await api.delete(`/payment-methods/${paymentMethodId}`);
     return response.data;
   },
 };
 
 export const paymentAPI = {
-  createPaymentIntent: async (amount: number, customerId?: string, paymentMethodId?: string) => {
-    const response = await api.post('/payments/create-intent', {
+  createPaymentIntent: async (amount: number, customerId: string) => {
+    const response = await api.post('/create-payment-intent', {
       amount,
       customer_id: customerId,
-      payment_method_id: paymentMethodId,
     });
     return response.data;
   },
-  confirmPayment: async (paymentIntentId: string) => {
-    const response = await api.post('/payments/confirm', {
-      payment_intent_id: paymentIntentId,
+};
+
+export const subscriptionAPI = {
+  create: async (priceId: string, customerId: string, email: string) => {
+    const response = await api.post('/create-subscription', {
+      price_id: priceId,
+      customer_id: customerId,
+      email,
+    });
+    return response.data;
+  },
+};
+
+export const authAPI = {
+  signUp: async (email: string, password: string, name: string) => {
+    const response = await api.post('/signup', {
+      email,
+      password,
+      name,
+    });
+    return response.data;
+  },
+  signIn: async (email: string, password: string) => {
+    const response = await api.post('/signin', {
+      email,
+      password,
     });
     return response.data;
   },
