@@ -3,6 +3,7 @@ module github.com/darkphotonKN/stripe-basic-approach
 go 1.24.2
 
 require (
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/golang-jwt/jwt/v5 v5.0.0

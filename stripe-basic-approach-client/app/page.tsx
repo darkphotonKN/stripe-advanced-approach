@@ -1,50 +1,99 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
+import CustomerLifecycle from '@/components/CustomerLifecycle';
+import PaymentMethodManager from '@/components/PaymentMethodManager';
+import PaymentProcessor from '@/components/PaymentProcessor';
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [activePhase, setActivePhase] = useState<number>(1);
 
-  const handleCheckout = async () => {
-    setIsLoading(true);
-    setStatus("");
+  const handleCustomerCreated = (id: string) => {
+    setCustomerId(id);
+  };
 
-    try {
-      const response = await fetch("/api/create-checkout-session", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-
-      const { url } = await response.json();
-      // redirect to the generated checkout url
-      window.location.href = url;
-    } catch (error) {
-      console.error("Error:", error);
-      setStatus("Error: " + (error as Error).message);
-      setIsLoading(false);
-    }
+  const handlePaymentMethodSaved = () => {
+    console.log('Payment method saved successfully');
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-5">
-      <div className="max-w-md w-full border border-gray-300 p-8 text-center rounded-lg">
-        <h1 className="text-3xl font-bold mb-4">🦄 Cool T-Shirt</h1>
-        <p className="text-gray-600 mb-4">
-          The most amazing t-shirt you'll ever own!
-        </p>
-        <h2 className="text-2xl font-bold mb-6">$20.00</h2>
-        <button
-          onClick={handleCheckout}
-          disabled={isLoading}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white border-0 py-4 px-8 text-base rounded cursor-pointer w-full"
-        >
-          {isLoading ? "Creating checkout..." : "Buy Now"}
-        </button>
-        {status && <p className="mt-4 text-red-500">{status}</p>}
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            Stripe Payment Flow Demo
+          </h1>
+          <p className="text-gray-600">
+            Practice implementing the backend to match this frontend flow
+          </p>
+        </div>
+
+        <div className="flex justify-center mb-8">
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setActivePhase(1)}
+              className={`px-4 py-2 rounded ${
+                activePhase === 1
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Phase 1: Customer
+            </button>
+            <button
+              onClick={() => setActivePhase(2)}
+              className={`px-4 py-2 rounded ${
+                activePhase === 2
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } ${!customerId ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!customerId}
+            >
+              Phase 2: Payment Method
+            </button>
+            <button
+              onClick={() => setActivePhase(3)}
+              className={`px-4 py-2 rounded ${
+                activePhase === 3
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              } ${!customerId ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!customerId}
+            >
+              Phase 3: Payment
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {activePhase === 1 && (
+            <CustomerLifecycle onCustomerCreated={handleCustomerCreated} />
+          )}
+          
+          {activePhase === 2 && (
+            <PaymentMethodManager 
+              customerId={customerId}
+              onPaymentMethodSaved={handlePaymentMethodSaved}
+            />
+          )}
+          
+          {activePhase === 3 && (
+            <PaymentProcessor customerId={customerId} />
+          )}
+        </div>
+
+        <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="font-semibold text-blue-900 mb-2">Backend Implementation Guide:</h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>• POST /api/customers - Create Stripe customer</li>
+            <li>• POST /api/payment-methods/setup-intent - Create setup intent for saving cards</li>
+            <li>• GET /api/payment-methods/:customerId - List saved payment methods</li>
+            <li>• DELETE /api/payment-methods/:id - Detach payment method</li>
+            <li>• POST /api/payments/create-intent - Create payment intent</li>
+            <li>• POST /api/payments/confirm - Confirm payment (if needed)</li>
+          </ul>
+        </div>
       </div>
     </div>
   );
