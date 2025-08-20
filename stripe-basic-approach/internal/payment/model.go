@@ -1,5 +1,9 @@
 package payment
 
+type CreateCustomerReq struct {
+	Email string `json:"email"`
+}
+
 type CreateCustomerResponse struct {
 	CustomerID string `json:"customerId"`
 }
