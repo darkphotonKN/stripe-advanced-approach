@@ -1,5 +1,23 @@
 package payment
 
+// Setup Products
+type SetupProductsReq struct {
+	Name string `json:"name"`
+}
+
+type SetupProductsResponse struct {
+	OneTimeProduct struct {
+		ID      string `json:"id"`
+		PriceID string `json:"priceId"`
+	} `json:"oneTimeProduct"`
+	SubscriptionProduct struct {
+		ID      string `json:"id"`
+		PriceID string `json:"priceId"`
+	} `json:"subscriptionProduct"`
+}
+
+// Create Customer
+
 type CreateCustomerReq struct {
 	Email string `json:"email"`
 }
@@ -25,15 +43,4 @@ type SaveCardRequest struct {
 type SaveCardResponse struct {
 	ClientSecret  string `json:"client_secret"`
 	SetupIntentID string `json:"setupIntentId"`
-}
-
-type SetupProductsResponse struct {
-	OneTimeProduct struct {
-		ID      string `json:"id"`
-		PriceID string `json:"priceId"`
-	} `json:"oneTimeProduct"`
-	SubscriptionProduct struct {
-		ID      string `json:"id"`
-		PriceID string `json:"priceId"`
-	} `json:"subscriptionProduct"`
 }

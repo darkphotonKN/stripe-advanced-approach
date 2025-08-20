@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"context"
 	"log"
 
 	"github.com/docker/distribution/uuid"
@@ -15,8 +16,25 @@ func NewService() *service {
 	return &service{}
 }
 
-func (s *service) CreateCustomer(userId uuid.UUID) error {
+func (s *service) SetupProducts(userId uuid.UUID) error {
+	params := &stripe.CustomerParams{
+		Email: stripe.String("demo@example.com"),
+		Metadata: map[string]string{
+			"user_id": "demo_user_123", // Link to your user system
+		},
+	}
 
+	// create customer on Stripe
+	cust, err := customer.New(params)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Created customer: %s", cust.ID)
+	return nil
+}
+
+func (s *service) CreateCustomer(context.Context, *CreateCustomerReq) error {
 	params := &stripe.CustomerParams{
 		Email: stripe.String("demo@example.com"),
 		Metadata: map[string]string{

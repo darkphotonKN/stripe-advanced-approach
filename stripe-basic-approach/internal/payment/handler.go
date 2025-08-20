@@ -1,7 +1,9 @@
 package payment
 
 import (
-	"github.com/docker/distribution/uuid"
+	"context"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,24 +12,40 @@ type Handler struct {
 }
 
 type Service interface {
-	CreateCustomer(userId uuid.UUID) error
+	SetupProducts(context.Context, *SetupProductsReq) error
+	CreateCustomer(context.Context, *CreateCustomerReq) error
 }
 
 func NewHandler(service Service) *Handler {
 	return &Handler{service: service}
 }
 
+func (h *Handler) SetupProducts(c *gin.Context) {
+	var request SetupProductsReq
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.SetupProducts(c.Request.Context(), &request); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, request)
+}
+
 func (h *Handler) CreateCustomer(c *gin.Context) {
-	// var product Product
-	// if err := c.ShouldBindJSON(&product); err != nil {
-	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	//
-	// if err := h.service.CreateCustomer(c.Request.Context(), &product); err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-	//
-	// c.JSON(http.StatusCreated, product)
+	var request CreateCustomerReq
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.CreateCustomer(c.Request.Context(), &request); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, request)
 }
