@@ -32,8 +32,8 @@ export default function SignUp({ onSuccess, onSwitchToSignIn }: SignUpProps) {
 
     try {
       const data = await authAPI.signUp(formData.email, formData.password, formData.name);
-      localStorage.setItem('authToken', data.token);
-      onSuccess(data.token);
+      localStorage.setItem('authToken', data.access_token);
+      onSuccess(data.access_token);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Sign up failed');
       console.error(err);

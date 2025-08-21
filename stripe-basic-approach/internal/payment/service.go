@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
 	"github.com/stripe/stripe-go/v82/price"
@@ -26,6 +27,7 @@ func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) 
 	})
 
 	if err != nil {
+		fmt.Printf("\nError when creating product on stripe: %+v\n\n", err)
 		return err
 	}
 
@@ -37,6 +39,7 @@ func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) 
 	})
 
 	if err != nil {
+		fmt.Printf("\nError when creating on time price for product on stripe: %+v\n\n", err)
 		return err
 	}
 
@@ -45,11 +48,11 @@ func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) 
 	return nil
 }
 
-func (s *service) CreateCustomer(context.Context, *CreateCustomerReq) error {
+func (s *service) CreateCustomer(ctx context.Context, userId uuid.UUID, email string) error {
 	params := &stripe.CustomerParams{
-		Email: stripe.String("demo@example.com"),
+		Email: stripe.String(email),
 		Metadata: map[string]string{
-			"user_id": "demo_user_123", // Link to your user system
+			"user_id": userId.String(),
 		},
 	}
 

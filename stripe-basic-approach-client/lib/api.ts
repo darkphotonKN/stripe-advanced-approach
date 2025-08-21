@@ -1,44 +1,48 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem("authToken");
   if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
-  
-  const customerId = localStorage.getItem('stripeCustomerId');
+
+  const customerId = localStorage.getItem("stripeCustomerId");
   if (customerId) {
-    config.headers['X-Customer-Id'] = customerId;
+    config.headers["X-Customer-Id"] = customerId;
   }
   return config;
 });
 
 export const productAPI = {
   setupProducts: async () => {
-    const response = await api.post('/setup-products');
+    const response = await api.post("/setup-products", {
+      name: "Example Product",
+      description: "New Product",
+      price: 1000, // $10.00
+    });
     return response.data;
   },
 };
 
 export const customerAPI = {
   create: async () => {
-    const response = await api.post('/create-customer');
+    const response = await api.post("/create-customer");
     return response.data;
   },
 };
 
 export const paymentMethodAPI = {
   saveCard: async (customerId: string) => {
-    const response = await api.post('/save-card', {
+    const response = await api.post("/save-card", {
       customer_id: customerId,
     });
     return response.data;
@@ -47,7 +51,7 @@ export const paymentMethodAPI = {
 
 export const paymentAPI = {
   createPaymentIntent: async (amount: number, customerId: string) => {
-    const response = await api.post('/create-payment-intent', {
+    const response = await api.post("/create-payment-intent", {
       amount,
       customer_id: customerId,
     });
@@ -57,7 +61,7 @@ export const paymentAPI = {
 
 export const subscriptionAPI = {
   create: async (priceId: string, customerId: string, email: string) => {
-    const response = await api.post('/create-subscription', {
+    const response = await api.post("/create-subscription", {
       price_id: priceId,
       customer_id: customerId,
       email,
@@ -68,7 +72,7 @@ export const subscriptionAPI = {
 
 export const authAPI = {
   signUp: async (email: string, password: string, name: string) => {
-    const response = await api.post('/signup', {
+    const response = await api.post("/signup", {
       email,
       password,
       name,
@@ -76,7 +80,7 @@ export const authAPI = {
     return response.data;
   },
   signIn: async (email: string, password: string) => {
-    const response = await api.post('/signin', {
+    const response = await api.post("/signin", {
       email,
       password,
     });
@@ -85,3 +89,4 @@ export const authAPI = {
 };
 
 export default api;
+

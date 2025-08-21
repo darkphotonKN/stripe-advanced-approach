@@ -77,8 +77,8 @@ func (h *Handler) SignIn(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-		"user":  user,
+		"access_token": tokenString,
+		"user":         user,
 	})
 }
 
@@ -149,3 +149,4 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
