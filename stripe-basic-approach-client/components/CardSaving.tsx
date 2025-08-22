@@ -1,9 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { paymentMethodAPI } from '@/lib/api';
-import { stripePromise } from '@/lib/stripe';
-import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useState } from "react";
+import { paymentMethodAPI } from "@/lib/api";
+import { stripePromise } from "@/lib/stripe";
+import {
+  CardElement,
+  Elements,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
 interface CardSavingProps {
   customerId: string | null;
@@ -25,24 +30,29 @@ function CardSetupForm({ customerId }: { customerId: string }) {
     setError(null);
 
     try {
+      // gets the actual client secret after intent is made on BE
       const { client_secret } = await paymentMethodAPI.saveCard(customerId);
-      
+
       const cardElement = elements.getElement(CardElement);
       if (!cardElement) return;
 
-      const { error: stripeError } = await stripe.confirmCardSetup(client_secret, {
-        payment_method: {
-          card: cardElement,
+      // use stripe elements to save the card on stripe's system directly
+      const { error: stripeError } = await stripe.confirmCardSetup(
+        client_secret,
+        {
+          payment_method: {
+            card: cardElement,
+          },
         },
-      });
+      );
 
       if (stripeError) {
-        setError(stripeError.message || 'Failed to save card');
+        setError(stripeError.message || "Failed to save card");
       } else {
         setSaved(true);
       }
     } catch (err) {
-      setError('Failed to save payment method');
+      setError("Failed to save payment method");
       console.error(err);
     } finally {
       setLoading(false);
@@ -53,7 +63,9 @@ function CardSetupForm({ customerId }: { customerId: string }) {
     return (
       <div>
         <p className="text-green-600 mb-2">✓ Card saved successfully</p>
-        <p className="text-sm text-gray-600">Card saved to customer for future use</p>
+        <p className="text-sm text-gray-600">
+          Card saved to customer for future use
+        </p>
       </div>
     );
   }
@@ -65,25 +77,25 @@ function CardSetupForm({ customerId }: { customerId: string }) {
           options={{
             style: {
               base: {
-                fontSize: '16px',
-                color: '#424770',
-                '::placeholder': {
-                  color: '#aab7c4',
+                fontSize: "16px",
+                color: "#424770",
+                "::placeholder": {
+                  color: "#aab7c4",
                 },
               },
             },
           }}
         />
       </div>
-      
+
       <button
         type="submit"
         disabled={!stripe || loading}
         className="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 disabled:opacity-50"
       >
-        {loading ? 'Saving...' : 'Save Card'}
+        {loading ? "Saving..." : "Save Card"}
       </button>
-      
+
       {error && <p className="text-red-500">{error}</p>}
     </form>
   );
@@ -92,10 +104,14 @@ function CardSetupForm({ customerId }: { customerId: string }) {
 export default function CardSaving({ customerId, enabled }: CardSavingProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Phase 3: Card Saving (Optional)</h2>
-      
+      <h2 className="text-2xl font-bold mb-4">
+        Phase 3: Card Saving (Optional)
+      </h2>
+
       {!enabled ? (
-        <p className="text-gray-500">Create a customer first to save payment methods</p>
+        <p className="text-gray-500">
+          Create a customer first to save payment methods
+        </p>
       ) : !customerId ? (
         <p className="text-gray-500">Customer ID required</p>
       ) : (
@@ -103,7 +119,7 @@ export default function CardSaving({ customerId, enabled }: CardSavingProps) {
           <p className="text-gray-600 mb-4">
             Save a card to the customer for future use (optional)
           </p>
-          
+
           <Elements stripe={stripePromise}>
             <CardSetupForm customerId={customerId} />
           </Elements>

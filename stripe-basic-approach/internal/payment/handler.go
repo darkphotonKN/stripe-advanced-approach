@@ -14,8 +14,11 @@ type Handler struct {
 }
 
 type Service interface {
-	SetupProducts(context.Context, *SetupProductsReq) error
-	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) error
+	SetupProducts(context.Context, *SetupProductsReq) (*SetupProductsResp, error)
+	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
+	SaveCard(ctx context.Context, customerId string) (string, error)
+	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error)
+	CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error)
 }
 
 func NewHandler(service Service) *Handler {
@@ -34,12 +37,13 @@ func (h *Handler) SetupProducts(c *gin.Context) {
 
 	fmt.Println("create product request:", request)
 
-	if err := h.service.SetupProducts(c.Request.Context(), &request); err != nil {
+	resp, err := h.service.SetupProducts(c.Request.Context(), &request)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, request)
+	c.JSON(http.StatusCreated, resp)
 }
 
 func (h *Handler) CreateCustomer(c *gin.Context) {
@@ -50,10 +54,71 @@ func (h *Handler) CreateCustomer(c *gin.Context) {
 
 	userId, _ := uuid.Parse(userIdStr.(string))
 
-	if err := h.service.CreateCustomer(c.Request.Context(), userId, email.(string)); err != nil {
+	customerId, err := h.service.CreateCustomer(c.Request.Context(), userId, email.(string))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"success": true, "message": "Customer successfully created."})
+	c.JSON(http.StatusCreated, gin.H{"customer_id": customerId})
+}
+
+func (h *Handler) SaveCard(c *gin.Context) {
+	var req struct {
+		CustomerID string `json:"customer_id" binding:"required"`
+	}
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	clientSecret, err := h.service.SaveCard(c.Request.Context(), req.CustomerID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"client_secret": clientSecret})
+}
+
+func (h *Handler) CreatePaymentIntent(c *gin.Context) {
+	var req struct {
+		Amount     int64  `json:"amount" binding:"required"`
+		CustomerID string `json:"customer_id" binding:"required"`
+	}
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	clientSecret, err := h.service.CreatePaymentIntent(c.Request.Context(), req.Amount, req.CustomerID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"client_secret": clientSecret})
+}
+
+func (h *Handler) CreateSubscription(c *gin.Context) {
+	var req struct {
+		PriceID    string `json:"price_id" binding:"required"`
+		CustomerID string `json:"customer_id" binding:"required"`
+		Email      string `json:"email" binding:"required,email"`
+	}
+	
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.service.CreateSubscription(c.Request.Context(), req.PriceID, req.CustomerID, req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }

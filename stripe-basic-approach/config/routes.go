@@ -9,7 +9,6 @@ import (
 
 	"github.com/darkphotonKN/stripe-basic-approach/internal/middleware"
 	"github.com/darkphotonKN/stripe-basic-approach/internal/payment"
-	"github.com/darkphotonKN/stripe-basic-approach/internal/product"
 	"github.com/darkphotonKN/stripe-basic-approach/internal/user"
 )
 
@@ -31,13 +30,8 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	}))
 
 	userRepo := user.NewRepository(db)
-	productRepo := product.NewRepository(db)
-
 	userService := user.NewService(userRepo)
-	productService := product.NewService(productRepo)
-
 	userHandler := user.NewHandler(userService)
-	productHandler := product.NewHandler(productService)
 
 	// stripeProcessor := payment.NewStripeProcessor()
 
@@ -54,21 +48,15 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.PUT("/users/:id", userHandler.Update)
 	protected.DELETE("/users/:id", userHandler.Delete)
 
-	protected.GET("/products", productHandler.List)
-	protected.POST("/products", productHandler.Create)
-	protected.GET("/products/:id", productHandler.Get)
-	protected.PUT("/products/:id", productHandler.Update)
-	protected.DELETE("/products/:id", productHandler.Delete)
-
 	// payment setup
 	paymentService := payment.NewService()
 	paymentHandler := payment.NewHandler(paymentService)
 
 	protected.POST("/setup-products", paymentHandler.SetupProducts)
 	protected.POST("/create-customer", paymentHandler.CreateCustomer)
-
-	// router.HandleFunc("/save-card", h.SaveCard).Methods("POST")
+	protected.POST("/save-card", paymentHandler.SaveCard)
+	protected.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
+	protected.POST("/create-subscription", paymentHandler.CreateSubscription)
 
 	return router
 }
-

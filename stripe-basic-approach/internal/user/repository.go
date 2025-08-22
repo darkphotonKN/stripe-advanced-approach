@@ -2,17 +2,9 @@ package user
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
-
-type Repository interface {
-	Create(ctx context.Context, user *User) error
-	GetByID(ctx context.Context, id int) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	List(ctx context.Context) ([]User, error)
-	Update(ctx context.Context, user *User) error
-	Delete(ctx context.Context, id int) error
-}
 
 type repository struct {
 	db *sqlx.DB
@@ -31,7 +23,7 @@ func (r *repository) Create(ctx context.Context, user *User) error {
 	return r.db.GetContext(ctx, user, query, user.Email, user.Password, user.Name)
 }
 
-func (r *repository) GetByID(ctx context.Context, id int) (*User, error) {
+func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
 	var user User
 	query := `SELECT * FROM users WHERE id = $1`
 	err := r.db.GetContext(ctx, &user, query, id)
@@ -62,8 +54,9 @@ func (r *repository) Update(ctx context.Context, user *User) error {
 	return r.db.GetContext(ctx, user, query, user.Name, user.Email, user.ID)
 }
 
-func (r *repository) Delete(ctx context.Context, id int) error {
+func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.ExecContext(ctx, query, id)
 	return err
 }
+

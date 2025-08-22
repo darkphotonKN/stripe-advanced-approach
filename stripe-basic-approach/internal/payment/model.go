@@ -7,15 +7,8 @@ type SetupProductsReq struct {
 	Price       int64  `json:"price"`
 }
 
-type SetupProductsResponse struct {
-	OneTimeProduct struct {
-		ID      string `json:"id"`
-		PriceID string `json:"priceId"`
-	} `json:"oneTimeProduct"`
-	SubscriptionProduct struct {
-		ID      string `json:"id"`
-		PriceID string `json:"priceId"`
-	} `json:"subscriptionProduct"`
+type SetupProductsResp struct {
+	SubscriptionPriceID string `json:"subscription_price_id"`
 }
 
 // Create Customer
@@ -45,4 +38,9 @@ type SaveCardRequest struct {
 type SaveCardResponse struct {
 	ClientSecret  string `json:"client_secret"`
 	SetupIntentID string `json:"setupIntentId"`
+}
+
+type SubscriptionResp struct {
+	SubscriptionID string `json:"subscription_id"`
+	ClientSecret   string `json:"client_secret"`
 }

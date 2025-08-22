@@ -3,11 +3,11 @@ package user
 import (
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type Handler struct {
@@ -47,8 +47,24 @@ func (h *Handler) SignUp(c *gin.Context) {
 		return
 	}
 
+	// Generate JWT token for immediate login after signup
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID.String(),
+		"email":   user.Email,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not generate token"})
+		return
+	}
+
 	user.Password = ""
-	c.JSON(http.StatusCreated, user)
+	c.JSON(http.StatusCreated, gin.H{
+		"access_token": tokenString,
+		"user":         user,
+	})
 }
 
 func (h *Handler) SignIn(c *gin.Context) {
@@ -65,7 +81,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
+		"user_id": user.ID.String(),
 		"email":   user.Email,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
@@ -83,7 +99,8 @@ func (h *Handler) SignIn(c *gin.Context) {
 }
 
 func (h *Handler) Get(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -114,7 +131,8 @@ func (h *Handler) List(c *gin.Context) {
 }
 
 func (h *Handler) Update(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
@@ -136,7 +154,8 @@ func (h *Handler) Update(c *gin.Context) {
 }
 
 func (h *Handler) Delete(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
