@@ -60,3 +60,13 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+func (r *repository) UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error {
+	query := `
+		UPDATE users 
+		SET stripe_customer_id = $1, updated_at = NOW() 
+		WHERE id = $2
+	`
+	_, err := r.db.ExecContext(ctx, query, stripeCustomerID, userID)
+	return err
+}
+

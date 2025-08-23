@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"time"
@@ -12,6 +13,16 @@ import (
 
 type Handler struct {
 	service Service
+}
+
+type Service interface {
+	Create(ctx context.Context, user *User) error
+	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*User, error)
+	List(ctx context.Context) ([]User, error)
+	Update(ctx context.Context, id uuid.UUID, user *User) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	Authenticate(ctx context.Context, email, password string) (*User, error)
 }
 
 func NewHandler(service Service) *Handler {
@@ -168,4 +179,3 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
-

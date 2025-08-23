@@ -7,16 +7,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service interface {
-	Create(ctx context.Context, user *User) error
-	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	List(ctx context.Context) ([]User, error)
-	Update(ctx context.Context, id uuid.UUID, user *User) error
-	Delete(ctx context.Context, id uuid.UUID) error
-	Authenticate(ctx context.Context, email, password string) (*User, error)
-}
-
 type Repository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
@@ -24,6 +14,7 @@ type Repository interface {
 	List(ctx context.Context) ([]User, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 }
 
 type service struct {
@@ -93,5 +84,11 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 
 	user.Password = ""
 	return user, nil
+}
+
+func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
+
+	return s.repo.UpdateStripeCustomer(ctx, userId, customerId)
+
 }
 

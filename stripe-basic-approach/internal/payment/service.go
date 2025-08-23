@@ -14,12 +14,21 @@ import (
 )
 
 type service struct {
+	userService PaymentUserService
+}
+
+type PaymentUserService interface {
+	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 }
 
 func NewService() *service {
 	return &service{}
 }
 
+/**
+* Sets up custom products for purchase. This can be anything you wish to sell, and is a digital representation of the
+* item - which can be physical, digital, or even just a concept (donation, etc).
+**/
 func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	// create product
 	oneTimeProduct, err := product.New(&stripe.ProductParams{
@@ -72,6 +81,10 @@ func (s *service) CreateCustomer(ctx context.Context, userId uuid.UUID, email st
 	return cust.ID, nil
 }
 
+/**
+* This method AUTHORIZES a card save for a customer by creating a permission token for the client
+* to then use the stripe sdk via elements to save the card.
+**/
 func (s *service) SaveCard(ctx context.Context, customerId string) (string, error) {
 	params := &stripe.SetupIntentParams{
 		Customer: stripe.String(customerId),
@@ -82,9 +95,10 @@ func (s *service) SaveCard(ctx context.Context, customerId string) (string, erro
 
 	// - creates and sets up authorization for FUTURE card purchases.
 	// - generates client_secret, a permission token. NO card data is saved.
-	// - links to customer in stripe's system
+	// - links to customer in stripe's system via customerId
 	si, err := setupintent.New(params)
 	if err != nil {
+		fmt.Printf("Error when attempting to generate setup intent: %s\n", err.Error())
 		return "", err
 	}
 
