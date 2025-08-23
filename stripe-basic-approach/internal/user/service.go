@@ -3,6 +3,8 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
+
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,7 +23,7 @@ type service struct {
 	repo Repository
 }
 
-func NewService(repo Repository) Service {
+func NewService(repo Repository) *service {
 	return &service{repo: repo}
 }
 
@@ -75,6 +77,7 @@ func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 func (s *service) Authenticate(ctx context.Context, email, password string) (*User, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
+		fmt.Printf("Error when authenticating email: %s\n", err)
 		return nil, errors.New("invalid credentials")
 	}
 

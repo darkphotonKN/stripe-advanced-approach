@@ -21,8 +21,10 @@ type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 }
 
-func NewService() *service {
-	return &service{}
+func NewService(userService PaymentUserService) *service {
+	return &service{
+		userService: userService,
+	}
 }
 
 /**

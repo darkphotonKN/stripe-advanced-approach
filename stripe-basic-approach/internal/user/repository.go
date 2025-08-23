@@ -16,7 +16,7 @@ func NewRepository(db *sqlx.DB) Repository {
 
 func (r *repository) Create(ctx context.Context, user *User) error {
 	query := `
-		INSERT INTO users (email, password, name, created_at, updated_at)
+		INSERT INTO users (email, password, name, stripe_customer_id, created_at, updated_at)
 		VALUES ($1, $2, $3, NOW(), NOW())
 		RETURNING id, created_at, updated_at
 	`
@@ -69,4 +69,3 @@ func (r *repository) UpdateStripeCustomer(ctx context.Context, userID uuid.UUID,
 	_, err := r.db.ExecContext(ctx, query, stripeCustomerID, userID)
 	return err
 }
-

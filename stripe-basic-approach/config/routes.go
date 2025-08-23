@@ -33,8 +33,6 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
 
-	// stripeProcessor := payment.NewStripeProcessor()
-
 	api := router.Group("/api")
 
 	api.POST("/signup", userHandler.SignUp)
@@ -49,7 +47,7 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.DELETE("/users/:id", userHandler.Delete)
 
 	// payment setup
-	paymentService := payment.NewService()
+	paymentService := payment.NewService(userService)
 	paymentHandler := payment.NewHandler(paymentService)
 
 	protected.POST("/setup-products", paymentHandler.SetupProducts)
