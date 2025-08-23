@@ -78,6 +78,15 @@ func (s *service) CreateCustomer(ctx context.Context, userId uuid.UUID, email st
 	}
 
 	log.Printf("Created customer: %s", cust.ID)
+
+	// update local user repo for mapping
+	err = s.userService.UpdateStripeCustomer(ctx, userId, cust.ID)
+
+	if err != nil {
+		fmt.Printf("Error occured when attempting to update stripe customerId to user repo in CreateCustomer method: %s\n", err.Error())
+		return "", err
+	}
+
 	return cust.ID, nil
 }
 
