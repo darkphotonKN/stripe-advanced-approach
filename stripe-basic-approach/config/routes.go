@@ -45,6 +45,7 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.GET("/users/:id", userHandler.Get)
 	protected.PUT("/users/:id", userHandler.Update)
 	protected.DELETE("/users/:id", userHandler.Delete)
+	protected.GET("/users/stripe-customer", userHandler.GetStripeCustomer)
 
 	// payment setup
 	paymentService := payment.NewService(userService)

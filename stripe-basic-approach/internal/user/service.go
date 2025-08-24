@@ -95,3 +95,16 @@ func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, cu
 
 }
 
+func (s *service) GetStripeCustomer(ctx context.Context, userID uuid.UUID) (*string, error) {
+	if userID == uuid.Nil {
+		return nil, errors.New("invalid user ID")
+	}
+	
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return user.StripeCustomerID, nil
+}
+

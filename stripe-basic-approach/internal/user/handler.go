@@ -23,6 +23,7 @@ type Service interface {
 	Update(ctx context.Context, id uuid.UUID, user *User) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Authenticate(ctx context.Context, email, password string) (*User, error)
+	GetStripeCustomer(ctx context.Context, userID uuid.UUID) (*string, error)
 }
 
 func NewHandler(service Service) *Handler {
@@ -179,4 +180,32 @@ func (h *Handler) Delete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *Handler) GetStripeCustomer(c *gin.Context) {
+	// Get user ID from context (set by auth middleware)
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	userID, ok := userIDValue.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID in context"})
+		return
+	}
+
+	stripeCustomerID, err := h.service.GetStripeCustomer(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if stripeCustomerID == nil {
+		c.JSON(http.StatusOK, gin.H{"stripe_customer_id": nil, "exists": false})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"stripe_customer_id": *stripeCustomerID, "exists": true})
 }
