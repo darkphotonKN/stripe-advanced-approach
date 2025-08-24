@@ -31,6 +31,11 @@ func (s *service) CreateCustomer(ctx context.Context, userId uuid.UUID, email st
 	// create customer on stripe and get customer id
 	customerId, err := s.paymentProcessor.CreateCustomer(ctx, userId, email)
 
+	if err != nil {
+		fmt.Printf("Error occured when attemtping to create customer on stripe, %s\n", err.Error())
+		return "", err
+	}
+
 	// update local user repo for mapping
 	err = s.userService.UpdateStripeCustomer(ctx, userId, customerId)
 

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -183,15 +184,15 @@ func (h *Handler) Delete(c *gin.Context) {
 }
 
 func (h *Handler) GetStripeCustomer(c *gin.Context) {
-	// Get user ID from context (set by auth middleware)
-	userIDValue, exists := c.Get("userID")
+	userIDStr, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
 		return
 	}
 
-	userID, ok := userIDValue.(uuid.UUID)
-	if !ok {
+	fmt.Printf("userId from token:", userIDStr)
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID in context"})
 		return
 	}
