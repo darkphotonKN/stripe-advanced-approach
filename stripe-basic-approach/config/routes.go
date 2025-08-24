@@ -42,13 +42,14 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.Use(middleware.AuthMiddleware())
 
 	protected.GET("/users", userHandler.List)
+	protected.GET("/users/stripe-customer", userHandler.GetStripeCustomer)
 	protected.GET("/users/:id", userHandler.Get)
 	protected.PUT("/users/:id", userHandler.Update)
 	protected.DELETE("/users/:id", userHandler.Delete)
-	protected.GET("/users/stripe-customer", userHandler.GetStripeCustomer)
 
 	// payment setup
-	paymentService := payment.NewService(userService)
+	stripeProcessor := payment.NewStripeProcessor()
+	paymentService := payment.NewService(userService, stripeProcessor)
 	paymentHandler := payment.NewHandler(paymentService)
 
 	protected.POST("/setup-products", paymentHandler.SetupProducts)
