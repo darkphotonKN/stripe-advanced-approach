@@ -23,9 +23,15 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 
 	// TODO: CORS for development, remove in PROD
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PATCH", "OPTIONS"},
-		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{"GET", "POST", "PATCH", "OPTIONS"},
+		AllowHeaders: []string{"Content-Type", "Authorization",
+			"Accept",
+			"X-Requested-With",
+			"X-CSRF-Token",
+			"Cache-Control",
+			"*", // TODO: remove in prod
+		},
 		AllowCredentials: true,
 	}))
 
