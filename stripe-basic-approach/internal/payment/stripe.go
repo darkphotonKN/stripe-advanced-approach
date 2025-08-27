@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
+	"github.com/stripe/stripe-go/v82/paymentintent"
 	"github.com/stripe/stripe-go/v82/price"
 	"github.com/stripe/stripe-go/v82/product"
 	"github.com/stripe/stripe-go/v82/setupintent"
@@ -99,8 +100,34 @@ func (s *StripeProcessor) SaveCard(ctx context.Context, customerId string) (stri
 	return si.ClientSecret, nil
 }
 
+/**
+* Creates a payment authorization token that allows the frontend to charge a specific
+* amount for a specific customer. The backend validates the request and gets Stripe's
+* permission to charge, but the actual payment happens when the frontend confirms
+* with card data. This prevents unauthorized charges while keeping card data secure.
+**/
 func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error) {
-	return "", nil
+	params := &stripe.PaymentIntentParams{
+		Amount:   stripe.Int64(amount),
+		Currency: stripe.String("usd"),
+		Customer: stripe.String(customerId),
+
+		// manual confirmation means frontend confirms
+		ConfirmationMethod: stripe.String("manual"),
+		Confirm:            stripe.Bool(false),
+
+		// only allow CARD
+		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+	}
+
+	intent, err := paymentintent.New(params)
+	if err != nil {
+		return "", fmt.Errorf("failed to create payment intent: %w", err)
+	}
+
+	fmt.Printf("stripe created intent:\n", intent)
+
+	return intent.ClientSecret, nil
 }
 
 func (s *StripeProcessor) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {

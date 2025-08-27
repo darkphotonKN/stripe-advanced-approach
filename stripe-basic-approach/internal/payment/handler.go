@@ -67,7 +67,7 @@ func (h *Handler) SaveCard(c *gin.Context) {
 	var req struct {
 		CustomerID string `json:"customer_id" binding:"required"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -83,23 +83,31 @@ func (h *Handler) SaveCard(c *gin.Context) {
 }
 
 func (h *Handler) CreatePaymentIntent(c *gin.Context) {
-	var req struct {
-		Amount     int64  `json:"amount" binding:"required"`
-		CustomerID string `json:"customer_id" binding:"required"`
-	}
-	
+	var req CreatePaymentIntentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// validation
+	if req.Amount <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Amount must be greater than 0"})
+		return
+	}
+	if req.CustomerID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Customer ID required"})
 		return
 	}
 
 	clientSecret, err := h.service.CreatePaymentIntent(c.Request.Context(), req.Amount, req.CustomerID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment intent"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"client_secret": clientSecret})
+	c.JSON(http.StatusOK, CreatePaymentIntentResponse{
+		ClientSecret: clientSecret,
+	})
 }
 
 func (h *Handler) CreateSubscription(c *gin.Context) {
@@ -108,7 +116,7 @@ func (h *Handler) CreateSubscription(c *gin.Context) {
 		CustomerID string `json:"customer_id" binding:"required"`
 		Email      string `json:"email" binding:"required,email"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

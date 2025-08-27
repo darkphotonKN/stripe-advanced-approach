@@ -22,8 +22,8 @@ type CreateCustomerResponse struct {
 }
 
 type CreatePaymentIntentRequest struct {
-	Amount     int64  `json:"amount"` // Amount in cents
-	CustomerID string `json:"customerId,omitempty"`
+	Amount     int64  `json:"amount"`
+	CustomerID string `json:"customer_id"`
 }
 
 type CreatePaymentIntentResponse struct {
