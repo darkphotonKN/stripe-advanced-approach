@@ -58,7 +58,8 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	paymentService := payment.NewService(userService, stripeProcessor)
 	paymentHandler := payment.NewHandler(paymentService)
 
-	protected.POST("/setup-products", paymentHandler.SetupProducts)
+	protected2 := protected.Group("/setup-products")
+	protected2.POST("/", paymentHandler.SetupProducts)
 	protected.POST("/create-customer", paymentHandler.CreateCustomer)
 	protected.POST("/save-card", paymentHandler.SaveCard)
 	protected.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
