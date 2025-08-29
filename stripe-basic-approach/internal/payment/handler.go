@@ -26,16 +26,12 @@ func NewHandler(service Service) *Handler {
 }
 
 func (h *Handler) SetupProducts(c *gin.Context) {
-	fmt.Println("Creating Stripe Product...")
-
 	var request SetupProductsReq
 	if err := c.ShouldBindJSON(&request); err != nil {
 		fmt.Printf("\nError when parsing json: %+v\n\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	fmt.Println("create product request:", request)
 
 	resp, err := h.service.SetupProducts(c.Request.Context(), &request)
 	if err != nil {
@@ -100,6 +96,7 @@ func (h *Handler) CreatePaymentIntent(c *gin.Context) {
 	}
 
 	clientSecret, err := h.service.CreatePaymentIntent(c.Request.Context(), req.Amount, req.CustomerID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create payment intent"})
 		return

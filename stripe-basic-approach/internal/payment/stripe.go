@@ -107,6 +107,7 @@ func (s *StripeProcessor) SaveCard(ctx context.Context, customerId string) (stri
 * with card data. This prevents unauthorized charges while keeping card data secure.
 **/
 func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error) {
+
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(amount),
 		Currency: stripe.String("usd"),
@@ -125,7 +126,7 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 		return "", fmt.Errorf("failed to create payment intent: %w", err)
 	}
 
-	fmt.Printf("stripe created intent:\n", intent)
+	fmt.Printf("stripe created intent: %+v\n", intent)
 
 	return intent.ClientSecret, nil
 }

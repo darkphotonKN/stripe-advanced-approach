@@ -52,7 +52,7 @@ func (s *service) SaveCard(ctx context.Context, customerId string) (string, erro
 }
 
 func (s *service) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error) {
-	return "", nil
+	return s.paymentProcessor.CreatePaymentIntent(ctx, amount, customerId)
 }
 
 func (s *service) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {
