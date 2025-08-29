@@ -106,7 +106,7 @@ func (s *StripeProcessor) SaveCard(ctx context.Context, customerId string) (stri
 * permission to charge, but the actual payment happens when the frontend confirms
 * with card data. This prevents unauthorized charges while keeping card data secure.
 **/
-func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error) {
+func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error) {
 
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(amount),
@@ -123,12 +123,15 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 
 	intent, err := paymentintent.New(params)
 	if err != nil {
-		return "", fmt.Errorf("failed to create payment intent: %w", err)
+		return nil, fmt.Errorf("failed to create payment intent: %w", err)
 	}
 
 	fmt.Printf("stripe created intent: %+v\n", intent)
 
-	return intent.ClientSecret, nil
+	return &CreatePaymentIntentResponse{
+		PaymentIntentID: intent.ID,
+		ClientSecret:    intent.ClientSecret,
+	}, nil
 }
 
 func (s *StripeProcessor) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {

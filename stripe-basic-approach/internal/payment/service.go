@@ -51,7 +51,7 @@ func (s *service) SaveCard(ctx context.Context, customerId string) (string, erro
 	return s.paymentProcessor.SaveCard(ctx, customerId)
 }
 
-func (s *service) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (string, error) {
+func (s *service) CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error) {
 	return s.paymentProcessor.CreatePaymentIntent(ctx, amount, customerId)
 }
 
