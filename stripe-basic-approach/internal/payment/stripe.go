@@ -113,8 +113,8 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 		Currency: stripe.String("usd"),
 		Customer: stripe.String(customerId),
 
-		// manual confirmation means frontend confirms
-		ConfirmationMethod: stripe.String("manual"),
+		// manual confirmation means frontend confirms - this is default confirmation
+		ConfirmationMethod: stripe.String("automatic"),
 		Confirm:            stripe.Bool(false),
 
 		// only allow CARD
