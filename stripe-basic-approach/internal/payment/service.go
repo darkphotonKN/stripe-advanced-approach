@@ -63,6 +63,6 @@ func (s *service) PurchaseProduct(ctx context.Context, req *PurchaseProductReque
 	return s.paymentProcessor.PurchaseProduct(ctx, req)
 }
 
-func (s *service) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {
-	return nil, nil
+func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
+	return s.paymentProcessor.SetupSubscription(ctx, request)
 }

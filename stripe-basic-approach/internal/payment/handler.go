@@ -20,7 +20,7 @@ type Service interface {
 	SaveCard(ctx context.Context, customerId string) (string, error)
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
-	CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error)
+	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
 }
 
 func NewHandler(service Service) *Handler {
