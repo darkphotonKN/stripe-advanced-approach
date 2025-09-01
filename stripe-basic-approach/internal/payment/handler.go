@@ -15,9 +15,11 @@ type Handler struct {
 
 type Service interface {
 	SetupProducts(context.Context, *SetupProductsReq) (*SetupProductsResp, error)
+	GetProducts(ctx context.Context) (*ProductListResponse, error)
 	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
 	SaveCard(ctx context.Context, customerId string) (string, error)
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
+	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error)
 }
 
@@ -118,6 +120,32 @@ func (h *Handler) CreateSubscription(c *gin.Context) {
 	}
 
 	resp, err := h.service.CreateSubscription(c.Request.Context(), req.PriceID, req.CustomerID, req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) GetProducts(c *gin.Context) {
+	resp, err := h.service.GetProducts(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) PurchaseProduct(c *gin.Context) {
+	var req PurchaseProductRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.service.PurchaseProduct(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

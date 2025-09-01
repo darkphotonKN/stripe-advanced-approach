@@ -55,6 +55,14 @@ func (s *service) CreatePaymentIntent(ctx context.Context, amount int64, custome
 	return s.paymentProcessor.CreatePaymentIntent(ctx, amount, customerId)
 }
 
+func (s *service) GetProducts(ctx context.Context) (*ProductListResponse, error) {
+	return s.paymentProcessor.GetProducts(ctx)
+}
+
+func (s *service) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
+	return s.paymentProcessor.PurchaseProduct(ctx, req)
+}
+
 func (s *service) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {
 	return nil, nil
 }

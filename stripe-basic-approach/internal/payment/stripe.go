@@ -137,3 +137,89 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 func (s *StripeProcessor) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {
 	return nil, nil
 }
+
+/**
+* Lists all the products existing on the stripe catalog from all customers.
+**/
+func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse, error) {
+	// gets all active products with prices
+	params := &stripe.ProductListParams{
+		Active: stripe.Bool(true),
+	}
+	params.AddExpand("data.default_price")
+
+	iter := product.List(params)
+
+	var productList []ProductInfo
+	for iter.Next() {
+		prod := iter.Product()
+
+		// Skip products without a default price
+		if prod.DefaultPrice == nil {
+			continue
+		}
+
+		productInfo := ProductInfo{
+			ID:          prod.ID,
+			Name:        prod.Name,
+			Description: prod.Description,
+		}
+
+		// Get price information from the expanded default_price
+		if prod.DefaultPrice != nil {
+			productInfo.PriceID = prod.DefaultPrice.ID
+			productInfo.Price = prod.DefaultPrice.UnitAmount
+		}
+
+		productList = append(productList, productInfo)
+	}
+
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("error listing products: %w", err)
+	}
+
+	return &ProductListResponse{Products: productList}, nil
+}
+
+/**
+* Purchases a specific product by creating a payment intent for the product's price.
+**/
+func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
+	// First, get the product to find its default price
+	prod, err := product.Get(req.ProductID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get product: %w", err)
+	}
+	
+	if prod.DefaultPrice == nil {
+		return nil, fmt.Errorf("product has no default price")
+	}
+	
+	// Create payment intent with the product's price
+	params := &stripe.PaymentIntentParams{
+		Amount:   stripe.Int64(prod.DefaultPrice.UnitAmount),
+		Currency: stripe.String("usd"),
+		Customer: stripe.String(req.CustomerID),
+		
+		ConfirmationMethod: stripe.String("automatic"),
+		Confirm:            stripe.Bool(false),
+		
+		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
+		
+		// Add metadata to track the product being purchased
+		Metadata: map[string]string{
+			"product_id": req.ProductID,
+			"price_id":   prod.DefaultPrice.ID,
+		},
+	}
+
+	intent, err := paymentintent.New(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create payment intent: %w", err)
+	}
+
+	return &PurchaseProductResponse{
+		ClientSecret:    intent.ClientSecret,
+		PaymentIntentID: intent.ID,
+	}, nil
+}
