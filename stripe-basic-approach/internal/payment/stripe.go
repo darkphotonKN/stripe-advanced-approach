@@ -25,7 +25,7 @@ func NewStripeProcessor() PaymentProcessor {
 **/
 func (s *StripeProcessor) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	// create product
-	oneTimeProduct, err := product.New(&stripe.ProductParams{
+	prod, err := product.New(&stripe.ProductParams{
 		Name:        stripe.String(request.Name),
 		Description: stripe.String(request.Description),
 	})
@@ -35,13 +35,21 @@ func (s *StripeProcessor) SetupProducts(ctx context.Context, request *SetupProdu
 		return nil, err
 	}
 
-	// create subscription price (recurring monthly)
-	subscriptionPrice, err := price.New(&stripe.PriceParams{
+	// create SUBSCRIPTION product / service
+	// subscriptionPrice, err := price.New(&stripe.PriceParams{
+	// 	Currency: stripe.String("usd"),
+	// 	Product:  stripe.String(product.ID),
+	// 	Recurring: &stripe.PriceRecurringParams{
+	// 		Interval: stripe.String("month"),
+	// 	},
+	// 	UnitAmount: stripe.Int64(request.Price),
+	// })
+
+	// create STANDARD product / service
+	oneTimePrice, err := price.New(&stripe.PriceParams{
 		Currency: stripe.String("usd"),
-		Product:  stripe.String(oneTimeProduct.ID),
-		Recurring: &stripe.PriceRecurringParams{
-			Interval: stripe.String("month"),
-		},
+		Product:  stripe.String(prod.ID),
+		// NO Recurring parameter = one-time price!
 		UnitAmount: stripe.Int64(request.Price),
 	})
 
@@ -50,10 +58,15 @@ func (s *StripeProcessor) SetupProducts(ctx context.Context, request *SetupProdu
 		return nil, err
 	}
 
-	fmt.Printf("Created new product's price successfully. Response:%+v\n", subscriptionPrice)
+	fmt.Printf("Created new product's price successfully. Response:%+v\n", oneTimePrice)
+
+	// set default price. NOT set by default.
+	product.Update(prod.ID, &stripe.ProductParams{
+		DefaultPrice: stripe.String(oneTimePrice.ID),
+	})
 
 	return &SetupProductsResp{
-		SubscriptionPriceID: subscriptionPrice.ID,
+		SubscriptionPriceID: oneTimePrice.ID,
 	}, nil
 }
 
@@ -154,7 +167,7 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 	for iter.Next() {
 		prod := iter.Product()
 
-		// Skip products without a default price
+		// skip products without a default price
 		if prod.DefaultPrice == nil {
 			continue
 		}
@@ -174,6 +187,8 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 		productList = append(productList, productInfo)
 	}
 
+	fmt.Printf("\nproductList: %+v\n\n", productList)
+
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error listing products: %w", err)
 	}
@@ -185,28 +200,28 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 * Purchases a specific product by creating a payment intent for the product's price.
 **/
 func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
-	// First, get the product to find its default price
+	// first, get the product to find its default price
 	prod, err := product.Get(req.ProductID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
-	
+
 	if prod.DefaultPrice == nil {
 		return nil, fmt.Errorf("product has no default price")
 	}
-	
-	// Create payment intent with the product's price
+
+	// create payment intent with the product's price
 	params := &stripe.PaymentIntentParams{
 		Amount:   stripe.Int64(prod.DefaultPrice.UnitAmount),
 		Currency: stripe.String("usd"),
 		Customer: stripe.String(req.CustomerID),
-		
+
 		ConfirmationMethod: stripe.String("automatic"),
 		Confirm:            stripe.Bool(false),
-		
+
 		PaymentMethodTypes: stripe.StringSlice([]string{"card"}),
-		
-		// Add metadata to track the product being purchased
+
+		// add metadata to track the product being purchased
 		Metadata: map[string]string{
 			"product_id": req.ProductID,
 			"price_id":   prod.DefaultPrice.ID,
