@@ -2,7 +2,6 @@ package product
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -24,7 +23,6 @@ func NewRepository(db *sqlx.DB) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, product *Product) error {
-	fmt.Printf("\nincoming product:\n\n%+v\n\n")
 
 	query := `
 		INSERT INTO products (name, description, price, stock, created_at, updated_at)

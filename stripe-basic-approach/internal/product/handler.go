@@ -17,6 +17,7 @@ func NewHandler(service Service) *Handler {
 
 func (h *Handler) Create(c *gin.Context) {
 	var product Product
+
 	if err := c.ShouldBindJSON(&product); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -91,3 +92,4 @@ func (h *Handler) Delete(c *gin.Context) {
 
 	c.JSON(http.StatusNoContent, nil)
 }
+
