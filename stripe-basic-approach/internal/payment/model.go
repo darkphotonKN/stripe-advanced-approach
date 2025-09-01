@@ -8,7 +8,7 @@ type SetupProductsReq struct {
 }
 
 type SetupProductsResp struct {
-	SubscriptionPriceID string `json:"subscription_price_id"`
+	PriceID string `json:"price_id"`
 }
 
 // Create Customer

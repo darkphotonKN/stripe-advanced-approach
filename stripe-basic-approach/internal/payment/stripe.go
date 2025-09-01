@@ -66,7 +66,7 @@ func (s *StripeProcessor) SetupProducts(ctx context.Context, request *SetupProdu
 	})
 
 	return &SetupProductsResp{
-		SubscriptionPriceID: oneTimePrice.ID,
+		PriceID: oneTimePrice.ID,
 	}, nil
 }
 
@@ -147,8 +147,52 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 	}, nil
 }
 
-func (s *StripeProcessor) CreateSubscription(ctx context.Context, priceId, customerId, email string) (*SubscriptionResp, error) {
-	return nil, nil
+func (s *StripeProcessor) CreateSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
+	// create product
+	prod, err := product.New(&stripe.ProductParams{
+		Name:        stripe.String(request.Name),
+		Description: stripe.String(request.Description),
+	})
+
+	if err != nil {
+		fmt.Printf("\nError when creating product on stripe: %+v\n\n", err)
+		return nil, err
+	}
+
+	// create SUBSCRIPTION product / service
+	// subscriptionPrice, err := price.New(&stripe.PriceParams{
+	// 	Currency: stripe.String("usd"),
+	// 	Product:  stripe.String(product.ID),
+	// 	Recurring: &stripe.PriceRecurringParams{
+	// 		Interval: stripe.String("month"),
+	// 	},
+	// 	UnitAmount: stripe.Int64(request.Price),
+	// })
+
+	// create STANDARD product / service
+	oneTimePrice, err := price.New(&stripe.PriceParams{
+		Currency: stripe.String("usd"),
+		Product:  stripe.String(prod.ID),
+		// NO Recurring parameter = one-time price!
+		UnitAmount: stripe.Int64(request.Price),
+	})
+
+	if err != nil {
+		fmt.Printf("\nError when creating subscription price for product on stripe: %+v\n\n", err)
+		return nil, err
+	}
+
+	fmt.Printf("Created new product's price successfully. Response:%+v\n", oneTimePrice)
+
+	// set default price. NOT set by default.
+	product.Update(prod.ID, &stripe.ProductParams{
+		DefaultPrice: stripe.String(oneTimePrice.ID),
+	})
+
+	return &SetupProductsResp{
+		SubscriptionPriceID: oneTimePrice.ID,
+	}, nil
+}
 }
 
 /**
