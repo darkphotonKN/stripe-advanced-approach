@@ -107,19 +107,15 @@ func (h *Handler) CreatePaymentIntent(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-func (h *Handler) CreateSubscription(c *gin.Context) {
-	var req struct {
-		PriceID    string `json:"price_id" binding:"required"`
-		CustomerID string `json:"customer_id" binding:"required"`
-		Email      string `json:"email" binding:"required,email"`
-	}
+func (h *Handler) SetupSubscription(c *gin.Context) {
+	var request SetupProductsReq
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp, err := h.service.CreateSubscription(c.Request.Context(), req.PriceID, req.CustomerID, req.Email)
+	resp, err := h.service.SetupSubscription(c.Request.Context(), &request)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

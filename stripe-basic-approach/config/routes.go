@@ -64,7 +64,7 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.POST("/save-card", paymentHandler.SaveCard)
 	protected.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
 	protected.POST("/purchase-product", paymentHandler.PurchaseProduct)
-	protected.POST("/setup-subscription", paymentHandler.CreateSubscription)
+	protected.POST("/setup-subscription", paymentHandler.SetupSubscription)
 
 	return router
 }
