@@ -14,4 +14,6 @@ type PaymentProcessor interface {
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
+
+	SubscribeToService(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 }

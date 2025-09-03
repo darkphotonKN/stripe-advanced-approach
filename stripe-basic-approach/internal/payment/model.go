@@ -52,6 +52,7 @@ type ProductInfo struct {
 	Description string `json:"description"`
 	Price       int64  `json:"price"`
 	PriceID     string `json:"price_id"`
+	Type        string `json:"type"` // "one-time" or "subscription"
 }
 
 type ProductListResponse struct {
@@ -67,4 +68,16 @@ type PurchaseProductRequest struct {
 type PurchaseProductResponse struct {
 	ClientSecret    string `json:"client_secret"`
 	PaymentIntentID string `json:"payment_intent_id"`
+}
+
+// Subscribe Product
+type SubscribeRequest struct {
+	ProductID  string `json:"product_id"`  // Product to subscribe to
+	CustomerID string `json:"customer_id"` // Stripe customer ID
+}
+
+type SubscribeResponse struct {
+	SubscriptionID string `json:"subscription_id"` // sub_xxx ID for management
+	ClientSecret   string `json:"client_secret"`   // For frontend to confirm payment
+	Status         string `json:"status"`          // "incomplete" until payment confirmed
 }

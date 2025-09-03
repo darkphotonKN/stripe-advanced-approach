@@ -11,6 +11,7 @@ import (
 	"github.com/stripe/stripe-go/v82/price"
 	"github.com/stripe/stripe-go/v82/product"
 	"github.com/stripe/stripe-go/v82/setupintent"
+	"github.com/stripe/stripe-go/v82/subscription"
 )
 
 type StripeProcessor struct{}
@@ -137,6 +138,9 @@ func (s *StripeProcessor) CreatePaymentIntent(ctx context.Context, amount int64,
 	}, nil
 }
 
+/**
+* Creates a subscription item or service for recurring type payments.
+**/
 func (s *StripeProcessor) SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	// create subscription
 	subscriptionProd, err := product.New(&stripe.ProductParams{
@@ -168,7 +172,7 @@ func (s *StripeProcessor) SetupSubscription(ctx context.Context, request *SetupP
 	fmt.Printf("Created new subscription's price successfully. Response:%+v\n", subscriptionPrice)
 
 	// set default price. NOT set by default.
-	product.Update(subscriptionPrice.ID, &stripe.ProductParams{
+	product.Update(subscriptionProd.ID, &stripe.ProductParams{
 		DefaultPrice: stripe.String(subscriptionPrice.ID),
 	})
 
@@ -209,6 +213,13 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 		if prod.DefaultPrice != nil {
 			productInfo.PriceID = prod.DefaultPrice.ID
 			productInfo.Price = prod.DefaultPrice.UnitAmount
+
+			// Determine if it's a subscription or one-time product
+			if prod.DefaultPrice.Recurring != nil {
+				productInfo.Type = "subscription"
+			} else {
+				productInfo.Type = "one-time"
+			}
 		}
 
 		productList = append(productList, productInfo)
@@ -228,7 +239,33 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 **/
 func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
 	// first, get the product to find its default price
-	prod, err := product.Get(req.ProductID, nil)
+	productParams := &stripe.ProductParams{}
+
+	// we need to use AddExpand method on the the field we want to convert
+	// from an id to the object with DETAILED data object.
+	//
+	// Normal Stripe Response:
+	// json{
+	//   "id": "prod_123",
+	//   "name": "T-Shirt",
+	//   "default_price": "price_456"  // Just a string ID
+	// }
+	//
+	// With AddExpand("default_price"):
+	// json{
+	//   "id": "prod_123",
+	//   "name": "T-Shirt",
+	//   "default_price": {  // Full object!
+	//     "id": "price_456",
+	//     "unit_amount": 2000,
+	//     "currency": "usd",
+	//     "recurring": null
+	//   }
+	// }
+
+	productParams.AddExpand("default_price")
+
+	prod, err := product.Get(req.ProductID, productParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
@@ -236,6 +273,8 @@ func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProd
 	if prod.DefaultPrice == nil {
 		return nil, fmt.Errorf("product has no default price")
 	}
+
+	fmt.Printf("Product price amount: %d\n", prod.DefaultPrice.UnitAmount)
 
 	// create payment intent with the product's price
 	params := &stripe.PaymentIntentParams{
@@ -263,5 +302,61 @@ func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProd
 	return &PurchaseProductResponse{
 		ClientSecret:    intent.ClientSecret,
 		PaymentIntentID: intent.ID,
+	}, nil
+}
+
+/**
+* Subscribes a specific product by creating a payment intent for the product's price.
+**/
+func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	// Get product with expanded default_price to check if it's a subscription
+	productParams := &stripe.ProductParams{}
+	productParams.AddExpand("default_price")
+
+	prod, err := product.Get(req.ProductID, productParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get product: %w", err)
+	}
+
+	if prod.DefaultPrice == nil {
+		return nil, fmt.Errorf("product has no default price")
+	}
+
+	if prod.DefaultPrice.Recurring == nil {
+		return nil, fmt.Errorf("product %s is not a subscription (no recurring price)", req.ProductID)
+	}
+
+	// Create subscription
+	subParams := &stripe.SubscriptionParams{
+		Customer: stripe.String(req.CustomerID),
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				Price: stripe.String(prod.DefaultPrice.ID),
+			},
+		},
+		PaymentBehavior: stripe.String("default_incomplete"),
+		PaymentSettings: &stripe.SubscriptionPaymentSettingsParams{
+			SaveDefaultPaymentMethod: stripe.String("on_subscription"),
+		},
+	}
+	// Expand to get payment intent from the first invoice
+	subParams.AddExpand("latest_invoice.payment_intent")
+
+	// Create the subscription
+	sub, err := subscription.New(subParams)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create subscription: %w", err)
+	}
+
+	// Extract client secret from the subscription's first invoice
+	var clientSecret string
+	if sub.LatestInvoice != nil && sub.LatestInvoice.PaymentIntent != nil {
+		clientSecret = sub.LatestInvoice.PaymentIntent.ClientSecret
+	}
+
+	return &SubscribeResponse{
+		SubscriptionID: sub.ID,
+		ClientSecret:   clientSecret,
+		Status:         string(sub.Status),
 	}, nil
 }
