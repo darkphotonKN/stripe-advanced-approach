@@ -21,6 +21,7 @@ type Service interface {
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
+	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
 }
 
 func NewHandler(service Service) *Handler {
@@ -142,6 +143,22 @@ func (h *Handler) PurchaseProduct(c *gin.Context) {
 	}
 
 	resp, err := h.service.PurchaseProduct(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) SubscribeToProduct(c *gin.Context) {
+	var req SubscribeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := h.service.SubscribeToProduct(c.Request.Context(), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

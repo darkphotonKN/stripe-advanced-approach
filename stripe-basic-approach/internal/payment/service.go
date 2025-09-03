@@ -66,3 +66,25 @@ func (s *service) PurchaseProduct(ctx context.Context, req *PurchaseProductReque
 func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	return s.paymentProcessor.SetupSubscription(ctx, request)
 }
+
+func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
+	return s.paymentProcessor.SubscribeToProduct(ctx, req)
+}
+
+/*
+	--- Handling Payment Success / Failure Flows ---
+
+	User Journey:
+	- User completes payment/subscription
+	- Redirects back to your app's /success page
+	- Success page shows "Payment processing..."
+	- Waits for webhook to update database
+	- Eventually shows subscription status
+*/
+
+/**
+* Endpoint 1: Check for success in DB.
+**/
+
+func (s *service) ValidatePaymentSuccess(ctx context.Context, sessionID string) (*SuccessReponse, error) {
+}

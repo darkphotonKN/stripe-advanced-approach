@@ -309,7 +309,7 @@ func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProd
 * Subscribes a specific product by creating a payment intent for the product's price.
 **/
 func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
-	// Get product with expanded default_price to check if it's a subscription
+	// get product with expanded default_price to check if it's a subscription
 	productParams := &stripe.ProductParams{}
 	productParams.AddExpand("default_price")
 
@@ -326,7 +326,7 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 		return nil, fmt.Errorf("product %s is not a subscription (no recurring price)", req.ProductID)
 	}
 
-	// Create subscription
+	// create subscription
 	subParams := &stripe.SubscriptionParams{
 		Customer: stripe.String(req.CustomerID),
 		Items: []*stripe.SubscriptionItemsParams{
@@ -339,19 +339,20 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 			SaveDefaultPaymentMethod: stripe.String("on_subscription"),
 		},
 	}
-	// Expand to get payment intent from the first invoice
-	subParams.AddExpand("latest_invoice.payment_intent")
 
-	// Create the subscription
+	subParams.AddExpand("latest_invoice.confirmation_secret")
+
+	// create the subscription
 	sub, err := subscription.New(subParams)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create subscription: %w", err)
 	}
 
-	// Extract client secret from the subscription's first invoice
+	// extract client secret from the invoice's confirmation_secret
 	var clientSecret string
-	if sub.LatestInvoice != nil && sub.LatestInvoice.PaymentIntent != nil {
-		clientSecret = sub.LatestInvoice.PaymentIntent.ClientSecret
+	if sub.LatestInvoice != nil && sub.LatestInvoice.ConfirmationSecret != nil {
+		// The ConfirmationSecret contains the client_secret
+		clientSecret = sub.LatestInvoice.ConfirmationSecret.ClientSecret
 	}
 
 	return &SubscribeResponse{
