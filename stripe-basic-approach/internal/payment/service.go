@@ -10,6 +10,11 @@ import (
 type service struct {
 	userService      PaymentUserService
 	paymentProcessor PaymentProcessor
+	repo             Repository
+}
+
+type Repository interface {
+	Create(ctx context.Context, request CheckoutSessionRequest) (CheckoutSessionResponse, error)
 }
 
 type PaymentUserService interface {
@@ -72,7 +77,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest)
 }
 
 /*
-	--- Handling Payment Success / Failure Flows ---
+	--- Full checkout session flow, for handling Payment Success / Failure ---
 
 	User Journey:
 	- User completes payment/subscription
@@ -83,8 +88,45 @@ func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest)
 */
 
 /**
-* Endpoint 1: Check for success in DB.
+* Endpoint 1 - Creates Stripe session, saves pending payment
 **/
 
-func (s *service) ValidatePaymentSuccess(ctx context.Context, sessionID string) (*SuccessReponse, error) {
+func (s *service) CreateCheckoutSession(ctx context.Context, req *CheckoutSessionRequest) (*CheckoutSessionResponse, error) {
+	// 1. Create pending payment record in database
+	paymentID := uuid.New()
+	_, err := s.db.ExecContext(ctx, `
+       INSERT INTO payments (
+           id, 
+           stripe_customer_id,
+           status,
+           created_at,
+           updated_at
+       ) VALUES ($1, $2, $3, NOW(), NOW())
+   `, paymentID, req.CustomerID, "pending")
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create payment record: %w", err)
+	}
+
+	// 2. Create Stripe checkout session
+	sessionId, err := s.paymentProcessor.CreateCheckoutSession(ctx, req.CustomerID, paymentID)
+	if err != nil {
+		return err
+	}
+
+	// 3. Update payment record with session ID
+	_, err = s.db.ExecContext(ctx, `
+       UPDATE payments 
+       SET stripe_session_id = $1
+       WHERE id = $2
+   `, sess.ID, paymentID)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to update payment: %w", err)
+	}
+
+	return &CheckoutSessionResponse{
+		SessionID:   sess.ID,
+		CheckoutURL: sess.URL,
+	}, nil
 }

@@ -81,3 +81,19 @@ type SubscribeResponse struct {
 	ClientSecret   string `json:"client_secret"`   // For frontend to confirm payment
 	Status         string `json:"status"`          // "incomplete" until payment confirmed
 }
+
+// Checkout session
+
+type CheckoutSessionRequest struct {
+	CustomerID string `json:"customer_id"`
+	PriceID    string `json:"price_id"`
+}
+
+type CheckoutSessionResponse struct {
+	SessionID   string `json:"session_id"`
+	CheckoutURL string `json:"checkout_url"`
+}
+
+// Success
+type SuccessReponse struct {
+}

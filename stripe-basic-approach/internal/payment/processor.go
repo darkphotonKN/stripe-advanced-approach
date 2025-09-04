@@ -15,4 +15,5 @@ type PaymentProcessor interface {
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
+	CreateCheckoutSession(ctx context.Context, customerID string, paymentID uuid.UUID) (*CheckoutSessionResponse, error)
 }

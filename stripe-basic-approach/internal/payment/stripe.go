@@ -351,7 +351,7 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 	// extract client secret from the invoice's confirmation_secret
 	var clientSecret string
 	if sub.LatestInvoice != nil && sub.LatestInvoice.ConfirmationSecret != nil {
-		// The ConfirmationSecret contains the client_secret
+		// the ConfirmationSecret contains the client_secret
 		clientSecret = sub.LatestInvoice.ConfirmationSecret.ClientSecret
 	}
 
@@ -360,4 +360,31 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 		ClientSecret:   clientSecret,
 		Status:         string(sub.Status),
 	}, nil
+}
+
+/**
+	--- Full checkout session flow, for handling Payment Success / Failure ---
+**/
+
+func (s *StripeProcessor) CreateCheckoutSession(ctx context.Context, customerIDj, paymentID string) (*CheckoutSessionResponse, error) {
+	params := &stripe.CheckoutSessionParams{
+		Customer: stripe.String(req.CustomerID),
+		LineItems: []*stripe.CheckoutSessionLineItemParams{
+			{
+				Price:    stripe.String(req.PriceID),
+				Quantity: stripe.Int64(1),
+			},
+		},
+		Mode:              stripe.String("payment"), // or "subscription"
+		SuccessURL:        stripe.String("http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}"),
+		CancelURL:         stripe.String("http://localhost:3000/cancel"),
+		ClientReferenceID: stripe.String(paymentID.String()),
+	}
+
+	sess, err := session.New(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create checkout session: %w", err)
+	}
+
+	return sess.ID, nil
 }
