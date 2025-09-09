@@ -15,6 +15,13 @@ import (
 	"github.com/stripe/stripe-go/v82/subscription"
 )
 
+/*
+PCI Compliance
+
+CREDIT CARD DETAILS DATABASE X
+CREDIT CARD DETAILS API REQUEST TO BACKEND X
+*/
+
 type StripeProcessor struct{}
 
 func NewStripeProcessor() PaymentProcessor {
@@ -389,6 +396,7 @@ func (s *StripeProcessor) CreateCheckoutSession(ctx context.Context, customerID 
 	}
 
 	return &CheckoutSessionResponse{
-		SessionID: sess.ID,
+		SessionID:   sess.ID,
+		CheckoutURL: sess.URL,
 	}, nil
 }
