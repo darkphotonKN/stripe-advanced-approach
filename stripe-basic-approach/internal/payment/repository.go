@@ -16,18 +16,108 @@ func NewRepository(db *sqlx.DB) Repository {
 }
 
 func (r *repository) Create(ctx context.Context, req *CheckoutSessionRequest) (uuid.UUID, error) {
-	_, err := r.db.ExecContext(ctx, `
-	      INSERT INTO payments (
-	          stripe_customer_id,
-	          status,
-	          created_at,
-	          updated_at
-	      ) VALUES ($1, $2, NOW(), NOW())
-	  `, req.CustomerID, "pending")
-
+	var paymentID uuid.UUID
+	
+	query := `
+		INSERT INTO payments (
+			stripe_customer_id,
+			status,
+			created_at,
+			updated_at
+		) VALUES ($1, $2, NOW(), NOW())
+		RETURNING id
+	`
+	
+	err := r.db.QueryRowContext(ctx, query, req.CustomerID, "pending").Scan(&paymentID)
 	if err != nil {
 		return uuid.Nil, err
 	}
 
-	return uuid.Nil, nil
+	return paymentID, nil
+}
+
+func (r *repository) GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error) {
+	var payment Payment
+	
+	query := `
+		SELECT * FROM payments
+		WHERE stripe_intent_id = $1
+	`
+	
+	err := r.db.GetContext(ctx, &payment, query, intentID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &payment, nil
+}
+
+func (r *repository) UpdateStatus(ctx context.Context, intentID string, status string) error {
+	query := `
+		UPDATE payments
+		SET status = $1, updated_at = NOW()
+		WHERE stripe_intent_id = $2
+	`
+	
+	_, err := r.db.ExecContext(ctx, query, status, intentID)
+	return err
+}
+
+func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error {
+	query := `
+		INSERT INTO subscriptions (
+			user_id,
+			stripe_customer_id,
+			stripe_subscription_id,
+			stripe_price_id,
+			status,
+			current_period_start,
+			current_period_end,
+			cancel_at_period_end,
+			created_at,
+			updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+	`
+	
+	_, err := r.db.ExecContext(ctx, query,
+		sub.UserID,
+		sub.StripeCustomerID,
+		sub.StripeSubscriptionID,
+		sub.StripePriceID,
+		sub.Status,
+		sub.CurrentPeriodStart,
+		sub.CurrentPeriodEnd,
+		sub.CancelAtPeriodEnd,
+	)
+	
+	return err
+}
+
+func (r *repository) GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error) {
+	var subscription Subscription
+	
+	query := `
+		SELECT * FROM subscriptions
+		WHERE user_id = $1 AND status = 'active'
+		ORDER BY created_at DESC
+		LIMIT 1
+	`
+	
+	err := r.db.GetContext(ctx, &subscription, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &subscription, nil
+}
+
+func (r *repository) UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error {
+	query := `
+		UPDATE subscriptions
+		SET status = $1, updated_at = NOW()
+		WHERE stripe_subscription_id = $2
+	`
+	
+	_, err := r.db.ExecContext(ctx, query, status, subID)
+	return err
 }

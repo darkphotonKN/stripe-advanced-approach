@@ -1,5 +1,42 @@
 package payment
 
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// General Payments Entity
+type Payment struct {
+	ID                 uuid.UUID  `db:"id" json:"id"`
+	StripeCustomerID   string     `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeIntentID     string     `db:"stripe_intent_id" json:"stripe_intent_id"`
+	StripeSessionID    string     `db:"stripe_session_id" json:"stripe_session_id"`
+	Amount             int64      `db:"amount" json:"amount"`
+	Currency           string     `db:"currency" json:"currency"`
+	Status             string     `db:"status" json:"status"`
+	PaymentMethodTypes string     `db:"payment_method_types" json:"payment_method_types"`
+	CreatedAt          time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt          time.Time  `db:"updated_at" json:"updated_at"`
+	CompletedAt        *time.Time `db:"completed_at" json:"completed_at"`
+}
+
+// Subscription Entity
+type Subscription struct {
+	ID                   uuid.UUID  `db:"id" json:"id"`
+	UserID               uuid.UUID  `db:"user_id" json:"user_id"`
+	StripeCustomerID     string     `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID string     `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	StripePriceID        string     `db:"stripe_price_id" json:"stripe_price_id"`
+	Status               string     `db:"status" json:"status"`
+	CurrentPeriodStart   time.Time  `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     time.Time  `db:"current_period_end" json:"current_period_end"`
+	CancelAtPeriodEnd    bool       `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	CanceledAt           *time.Time `db:"canceled_at" json:"canceled_at"`
+	CreatedAt            time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time  `db:"updated_at" json:"updated_at"`
+}
+
 // Setup Products
 type SetupProductsReq struct {
 	Name        string `json:"name"`

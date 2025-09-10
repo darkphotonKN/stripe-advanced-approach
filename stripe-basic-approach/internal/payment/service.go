@@ -13,11 +13,14 @@ type service struct {
 	repo             Repository
 }
 
-// SOLI"D"
-// DIP
-
 type Repository interface {
 	Create(ctx context.Context, request *CheckoutSessionRequest) (uuid.UUID, error)
+	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
+	UpdateStatus(ctx context.Context, intentID string, status string) error
+
+	CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error
+	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error)
+	UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error
 }
 
 type PaymentUserService interface {
@@ -77,49 +80,4 @@ func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsR
 
 func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
 	return s.paymentProcessor.SubscribeToProduct(ctx, req)
-}
-
-/*
-	--- Full checkout session flow, for handling Payment Success / Failure ---
-
-	User Journey:
-	- User completes payment/subscription
-	- Redirects back to your app's /success page
-	- Success page shows "Payment processing..."
-	- Waits for webhook to update database
-	- Eventually shows subscription status
-*/
-
-/**
-* Endpoint 1 - Creates Stripe session, saves pending payment
-**/
-
-func (s *service) CreateCheckoutSession(ctx context.Context, req *CheckoutSessionRequest) (*CheckoutSessionResponse, error) {
-	// 1. Create pending payment record in database
-	paymentID, err := s.repo.Create(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create payment record: %w", err)
-	}
-
-	// 2. Create Stripe checkout session
-	session, err := s.paymentProcessor.CreateCheckoutSession(ctx, req.CustomerID, paymentID)
-	if err != nil {
-		return nil, err
-	}
-
-	// 3. Update payment record with session ID
-	// _, err = s.db.ExecContext(ctx, `
-	//       UPDATE payments
-	//       SET stripe_session_id = $1
-	//       WHERE id = $2
-	//   `, session.SessionID, paymentID)
-	//
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to update payment: %w", err)
-	// }
-
-	return &CheckoutSessionResponse{
-		SessionID:   session.SessionID,
-		CheckoutURL: session.CheckoutURL,
-	}, nil
 }

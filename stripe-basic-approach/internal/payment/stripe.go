@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
-	"github.com/stripe/stripe-go/v82/checkout/session"
 	"github.com/stripe/stripe-go/v82/customer"
 	"github.com/stripe/stripe-go/v82/paymentintent"
 	"github.com/stripe/stripe-go/v82/price"
@@ -15,8 +14,7 @@ import (
 	"github.com/stripe/stripe-go/v82/subscription"
 )
 
-/*
-PCI Compliance
+/* PCI Compliance
 
 CREDIT CARD DETAILS DATABASE X
 CREDIT CARD DETAILS API REQUEST TO BACKEND X
@@ -367,36 +365,5 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 		SubscriptionID: sub.ID,
 		ClientSecret:   clientSecret,
 		Status:         string(sub.Status),
-	}, nil
-}
-
-/**
-	--- Full checkout session flow, for handling Payment Success / Failure ---
-**/
-
-// Step 1 - Create Checkout session
-func (s *StripeProcessor) CreateCheckoutSession(ctx context.Context, customerID string, paymentID uuid.UUID) (*CheckoutSessionResponse, error) {
-	params := &stripe.CheckoutSessionParams{
-		Customer: stripe.String(customerID),
-		LineItems: []*stripe.CheckoutSessionLineItemParams{
-			{
-				Price:    stripe.String(paymentID.String()),
-				Quantity: stripe.Int64(1),
-			},
-		},
-		Mode:              stripe.String("payment"), // or "subscription"
-		SuccessURL:        stripe.String("http://localhost:3002/success?session_id={CHECKOUT_SESSION_ID}"),
-		CancelURL:         stripe.String("http://localhost:3002/cancel"),
-		ClientReferenceID: stripe.String(paymentID.String()),
-	}
-
-	sess, err := session.New(params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create checkout session: %w", err)
-	}
-
-	return &CheckoutSessionResponse{
-		SessionID:   sess.ID,
-		CheckoutURL: sess.URL,
 	}, nil
 }
