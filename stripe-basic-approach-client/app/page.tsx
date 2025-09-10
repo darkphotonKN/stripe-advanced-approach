@@ -6,7 +6,7 @@ import ProductSetup from "@/components/ProductSetup";
 import CustomerCreation from "@/components/CustomerCreation";
 import CardSaving from "@/components/CardSaving";
 import OneTimePayment from "@/components/OneTimePayment";
-import SubscriptionCreation from "@/components/SubscriptionCreation";
+import BuyProduct from "@/components/BuyProduct";
 
 export default function Home() {
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export default function Home() {
             </h1>
             <p className="text-gray-600 mb-4">
               Following the exact POC flow: Products → Customer → Save Card →
-              Payment → Subscription
+              Payment → Buy Product
             </p>
             <button
               onClick={resetAll}
@@ -74,7 +74,6 @@ export default function Home() {
 
           <CustomerCreation
             onCustomerCreated={handleCustomerCreated}
-            enabled={productsCreated}
           />
 
           <CardSaving customerId={stripeCustomerId} enabled={customerCreated} />
@@ -84,10 +83,9 @@ export default function Home() {
             enabled={customerCreated}
           />
 
-          <SubscriptionCreation
+          <BuyProduct
             customerId={stripeCustomerId}
-            priceId={subscriptionPriceId}
-            enabled={customerCreated && productsCreated}
+            enabled={true}
           />
         </div>
 
@@ -99,7 +97,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">
-                Phase 1: Product Setup
+                Step 1: Product Setup
               </h4>
               <ul className="text-blue-700 space-y-1">
                 <li>• POST /api/setup-products</li>
@@ -110,7 +108,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">
-                Phase 2: Customer Creation
+                Step 2: Customer Creation
               </h4>
               <ul className="text-blue-700 space-y-1">
                 <li>• POST /api/create-customer</li>
@@ -121,7 +119,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">
-                Phase 3: Card Saving
+                Step 3: Card Saving
               </h4>
               <ul className="text-blue-700 space-y-1">
                 <li>• POST /api/save-card</li>
@@ -132,7 +130,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">
-                Phase 4: One-Time Payment
+                Step 4: One-Time Payment
               </h4>
               <ul className="text-blue-700 space-y-1">
                 <li>• POST /api/create-payment-intent</li>
@@ -143,14 +141,15 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold text-blue-800 mb-2">
-                Phase 5: Subscription
+                Step 5: Buy Product
               </h4>
               <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/create-subscription</li>
-                <li>• Creates subscription + payment intent</li>
-                <li>• Returns subscription_id + client_secret</li>
+                <li>• GET /api/products</li>
+                <li>• POST /api/purchase-product</li>
+                <li>• Returns client_secret for payment</li>
               </ul>
             </div>
+
           </div>
 
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">

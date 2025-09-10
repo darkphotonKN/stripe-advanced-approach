@@ -23,12 +23,24 @@ api.interceptors.request.use((config) => {
 });
 
 export const productAPI = {
-  setupProducts: async () => {
+  setupProducts: async (name?: string, description?: string, price?: number) => {
     const response = await api.post("/setup-products", {
-      name: "Example Product",
-      description: "New Product",
-      price: 1000, // $10.00
+      name: name || "Example Product",
+      description: description || "New Product",
+      price: price || 1000, // Default $10.00
     });
+    return response.data;
+  },
+  setupSubscription: async (name?: string, description?: string, price?: number) => {
+    const response = await api.post("/setup-subscription", {
+      name: name || "Example Subscription",
+      description: description || "Monthly Subscription",
+      price: price || 1000, // Default $10.00
+    });
+    return response.data;
+  },
+  getProducts: async () => {
+    const response = await api.get("/products");
     return response.data;
   },
 };
@@ -36,6 +48,10 @@ export const productAPI = {
 export const customerAPI = {
   create: async () => {
     const response = await api.post("/create-customer");
+    return response.data;
+  },
+  getExisting: async () => {
+    const response = await api.get("/users/stripe-customer");
     return response.data;
   },
 };
@@ -53,6 +69,20 @@ export const paymentAPI = {
   createPaymentIntent: async (amount: number, customerId: string) => {
     const response = await api.post("/create-payment-intent", {
       amount,
+      customer_id: customerId,
+    });
+    return response.data;
+  },
+  purchaseProduct: async (productId: string, customerId: string) => {
+    const response = await api.post("/purchase-product", {
+      product_id: productId,
+      customer_id: customerId,
+    });
+    return response.data;
+  },
+  subscribeToProduct: async (productId: string, customerId: string) => {
+    const response = await api.post("/subscribe-to-product", {
+      product_id: productId,
       customer_id: customerId,
     });
     return response.data;

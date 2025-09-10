@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import SignUp from './SignUp';
 import SignIn from './SignIn';
+import { customerAPI } from '@/lib/api';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -19,8 +20,21 @@ export default function AuthWrapper({ children }: AuthWrapperProps) {
     setLoading(false);
   }, []);
 
-  const handleAuthSuccess = (token: string) => {
+  const checkAndSetExistingCustomer = async () => {
+    try {
+      const data = await customerAPI.getExisting();
+      if (data.exists && data.stripe_customer_id) {
+        localStorage.setItem('stripeCustomerId', data.stripe_customer_id);
+      }
+    } catch (err) {
+      console.log('No existing Stripe customer found');
+    }
+  };
+
+  const handleAuthSuccess = async (token: string) => {
     setIsAuthenticated(true);
+    // Check for existing Stripe customer after successful login
+    await checkAndSetExistingCustomer();
   };
 
   const handleSignOut = () => {

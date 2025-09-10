@@ -105,7 +105,7 @@ export default function CardSaving({ customerId, enabled }: CardSavingProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">
-        Phase 3: Card Saving (Optional)
+        Step 3: Card Saving (Optional)
       </h2>
 
       {!enabled ? (

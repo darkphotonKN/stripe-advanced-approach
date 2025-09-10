@@ -143,10 +143,10 @@ function SubscriptionForm({ customerId, priceId }: { customerId: string; priceId
 export default function SubscriptionCreation({ customerId, priceId, enabled }: SubscriptionCreationProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Phase 5: Subscription Creation</h2>
+      <h2 className="text-2xl font-bold mb-4">Step 6: Subscription Creation</h2>
       
       {!enabled ? (
-        <p className="text-gray-500">Complete previous phases first</p>
+        <p className="text-gray-500">Complete previous steps first</p>
       ) : !customerId || !priceId ? (
         <p className="text-gray-500">Customer ID and Price ID required</p>
       ) : (
