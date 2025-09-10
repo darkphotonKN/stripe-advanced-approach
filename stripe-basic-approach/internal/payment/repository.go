@@ -15,15 +15,19 @@ func NewRepository(db *sqlx.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, temp *CheckoutSessionRequest) (uuid.UUID, error) {
-	// _, err := r.db.ExecContext(ctx, `
-	//       INSERT INTO payments (
-	//           stripe_customer_id,
-	//           status,
-	//           created_at,
-	//           updated_at
-	//       ) VALUES ($1, $2, NOW(), NOW())
-	//   `, req.paymentID, req.CustomerID, "pending")
-	//
+func (r *repository) Create(ctx context.Context, req *CheckoutSessionRequest) (uuid.UUID, error) {
+	_, err := r.db.ExecContext(ctx, `
+	      INSERT INTO payments (
+	          stripe_customer_id,
+	          status,
+	          created_at,
+	          updated_at
+	      ) VALUES ($1, $2, NOW(), NOW())
+	  `, req.CustomerID, "pending")
+
+	if err != nil {
+		return uuid.Nil, err
+	}
+
 	return uuid.Nil, nil
 }
