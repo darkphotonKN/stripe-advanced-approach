@@ -9,6 +9,7 @@ import (
 // General Payments Entity
 type Payment struct {
 	ID                 uuid.UUID  `db:"id" json:"id"`
+	UserID             uuid.UUID  `db:"user_d" json:"user_id"`
 	StripeCustomerID   string     `db:"stripe_customer_id" json:"stripe_customer_id"`
 	StripeIntentID     string     `db:"stripe_intent_id" json:"stripe_intent_id"`
 	StripeSessionID    string     `db:"stripe_session_id" json:"stripe_session_id"`
@@ -107,6 +108,13 @@ type PurchaseProductResponse struct {
 	PaymentIntentID string `json:"payment_intent_id"`
 }
 
+// Internal Stripe response type with additional priceID
+type StripePurchaseResponse struct {
+	ClientSecret    string `json:"client_secret"`
+	PaymentIntentID string `json:"payment_intent_id"`
+	Amount          int64  `json:"amount"`
+}
+
 // Subscribe Product
 type SubscribeRequest struct {
 	ProductID  string `json:"product_id"`  // Product to subscribe to
@@ -122,8 +130,8 @@ type SubscribeResponse struct {
 // Checkout session
 
 type CheckoutSessionRequest struct {
-	CustomerID string `json:"customer_id"`
-	PriceID    string `json:"price_id"`
+	CustomerID string `json:"customer_id" db:"customer_id"`
+	Amount     int64  `json:"amount" db:"amount"`
 }
 
 type CheckoutSessionResponse struct {

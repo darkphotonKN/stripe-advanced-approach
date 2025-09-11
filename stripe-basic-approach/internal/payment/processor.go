@@ -13,6 +13,6 @@ type PaymentProcessor interface {
 	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
 	SaveCard(ctx context.Context, customerId string) (string, error)
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
-	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
+	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*StripePurchaseResponse, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
 }

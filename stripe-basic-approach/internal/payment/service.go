@@ -14,7 +14,7 @@ type service struct {
 }
 
 type Repository interface {
-	Create(ctx context.Context, request *CheckoutSessionRequest) (uuid.UUID, error)
+	Create(ctx context.Context, userId uuid.UUID, request *CheckoutSessionRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
 
@@ -27,8 +27,9 @@ type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 }
 
-func NewService(userService PaymentUserService, paymentProcessor PaymentProcessor) *service {
+func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor) *service {
 	return &service{
+		repo:             repo,
 		userService:      userService,
 		paymentProcessor: paymentProcessor,
 	}
@@ -70,8 +71,31 @@ func (s *service) GetProducts(ctx context.Context) (*ProductListResponse, error)
 	return s.paymentProcessor.GetProducts(ctx)
 }
 
-func (s *service) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
-	return s.paymentProcessor.PurchaseProduct(ctx, req)
+func (s *service) PurchaseProduct(ctx context.Context, userId uuid.UUID, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
+	res, err := s.paymentProcessor.PurchaseProduct(ctx, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// create payments record in database to map payment status to that on the payment service
+
+	fmt.Printf("\npurchase product request: %+v\n\n", req)
+	fmt.Printf("\npurchase product payment processor response: %+v\n\n", res)
+
+	err = s.repo.Create(ctx, userId, &CheckoutSessionRequest{
+		CustomerID: req.CustomerID,
+		Amount:     res.Amount,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &PurchaseProductResponse{
+		ClientSecret:    res.ClientSecret,
+		PaymentIntentID: res.PaymentIntentID,
+	}, nil
 }
 
 func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {

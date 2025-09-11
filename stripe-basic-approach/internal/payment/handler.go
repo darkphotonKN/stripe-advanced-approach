@@ -19,7 +19,7 @@ type Service interface {
 	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
 	SaveCard(ctx context.Context, customerId string) (string, error)
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
-	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
+	PurchaseProduct(ctx context.Context, userId uuid.UUID, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
 }
@@ -136,13 +136,20 @@ func (h *Handler) GetProducts(c *gin.Context) {
 }
 
 func (h *Handler) PurchaseProduct(c *gin.Context) {
+
+	userIdStr, _ := c.Get("user_id")
+
+	fmt.Printf("\nPurchasing product with userId: %s\n\n", userIdStr)
+
+	userId, _ := uuid.Parse(userIdStr.(string))
+
 	var req PurchaseProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp, err := h.service.PurchaseProduct(c.Request.Context(), &req)
+	resp, err := h.service.PurchaseProduct(c.Request.Context(), userId, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

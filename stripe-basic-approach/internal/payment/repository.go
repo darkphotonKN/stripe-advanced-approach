@@ -15,40 +15,41 @@ func NewRepository(db *sqlx.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, req *CheckoutSessionRequest) (uuid.UUID, error) {
-	var paymentID uuid.UUID
-	
+func (r *repository) Create(ctx context.Context, userId uuid.UUID, req *CheckoutSessionRequest) error {
+
 	query := `
 		INSERT INTO payments (
+			user_id,
 			stripe_customer_id,
+			amount, 
 			status,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, NOW(), NOW())
-		RETURNING id
+		) VALUES ($1, $2, $3, $4, NOW(), NOW())
 	`
-	
-	err := r.db.QueryRowContext(ctx, query, req.CustomerID, "pending").Scan(&paymentID)
+
+	_, err := r.db.ExecContext(ctx, query, userId, req.CustomerID, req.Amount, "pending")
+
 	if err != nil {
-		return uuid.Nil, err
+		return err
 	}
 
-	return paymentID, nil
+	return nil
 }
 
 func (r *repository) GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error) {
 	var payment Payment
-	
+
 	query := `
 		SELECT * FROM payments
 		WHERE stripe_intent_id = $1
 	`
-	
+
 	err := r.db.GetContext(ctx, &payment, query, intentID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &payment, nil
 }
 
@@ -58,7 +59,7 @@ func (r *repository) UpdateStatus(ctx context.Context, intentID string, status s
 		SET status = $1, updated_at = NOW()
 		WHERE stripe_intent_id = $2
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query, status, intentID)
 	return err
 }
@@ -78,7 +79,7 @@ func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscrip
 			updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query,
 		sub.UserID,
 		sub.StripeCustomerID,
@@ -89,25 +90,25 @@ func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscrip
 		sub.CurrentPeriodEnd,
 		sub.CancelAtPeriodEnd,
 	)
-	
+
 	return err
 }
 
 func (r *repository) GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error) {
 	var subscription Subscription
-	
+
 	query := `
 		SELECT * FROM subscriptions
 		WHERE user_id = $1 AND status = 'active'
 		ORDER BY created_at DESC
 		LIMIT 1
 	`
-	
+
 	err := r.db.GetContext(ctx, &subscription, query, userID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &subscription, nil
 }
 
@@ -117,7 +118,7 @@ func (r *repository) UpdateSubscriptionStatus(ctx context.Context, subID string,
 		SET status = $1, updated_at = NOW()
 		WHERE stripe_subscription_id = $2
 	`
-	
+
 	_, err := r.db.ExecContext(ctx, query, status, subID)
 	return err
 }

@@ -243,7 +243,7 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 /**
 * Purchases a specific product by creating a payment intent for the product's price.
 **/
-func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*PurchaseProductResponse, error) {
+func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*StripePurchaseResponse, error) {
 	// first, get the product to find its default price
 	productParams := &stripe.ProductParams{}
 
@@ -305,9 +305,10 @@ func (s *StripeProcessor) PurchaseProduct(ctx context.Context, req *PurchaseProd
 		return nil, fmt.Errorf("failed to create payment intent: %w", err)
 	}
 
-	return &PurchaseProductResponse{
+	return &StripePurchaseResponse{
 		ClientSecret:    intent.ClientSecret,
 		PaymentIntentID: intent.ID,
+		Amount:          prod.DefaultPrice.UnitAmount,
 	}, nil
 }
 

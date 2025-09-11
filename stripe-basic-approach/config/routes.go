@@ -55,7 +55,8 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 
 	// payment setup
 	stripeProcessor := payment.NewStripeProcessor()
-	paymentService := payment.NewService(userService, stripeProcessor)
+	paymentRepository := payment.NewRepository(db)
+	paymentService := payment.NewService(paymentRepository, userService, stripeProcessor)
 	paymentHandler := payment.NewHandler(paymentService)
 
 	protected.POST("/setup-products", paymentHandler.SetupProducts)
