@@ -2,9 +2,11 @@ package payment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v82"
 )
 
 type service struct {
@@ -86,6 +88,7 @@ func (s *service) PurchaseProduct(ctx context.Context, userId uuid.UUID, req *Pu
 	err = s.repo.Create(ctx, userId, &PaymentIntentRequest{
 		CustomerID: req.CustomerID,
 		Amount:     res.Amount,
+		IntentID:   res.PaymentIntentID,
 	})
 
 	if err != nil {
@@ -104,4 +107,37 @@ func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsR
 
 func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
 	return s.paymentProcessor.SubscribeToProduct(ctx, req)
+}
+
+// --- Full Flow Methods ---
+
+func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error {
+	fmt.Printf("Processing webhook event: %s\n", event.Type)
+
+	parsedPaymentIntent, err := s.parsePaymentProcessorEvent(event)
+
+	if err != nil {
+		return err
+	}
+
+	switch event.Type {
+	case "payment_intent.succeeded":
+		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "success")
+	case "payment_intent.payment_failed":
+		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "failed")
+	case "payment_intent.canceled":
+		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "canceled")
+	default:
+		fmt.Printf("Unhandled event type: %s\n", event.Type)
+		return nil
+	}
+}
+
+func (s *service) parsePaymentProcessorEvent(event *stripe.Event) (*stripe.PaymentIntent, error) {
+	var paymentIntent stripe.PaymentIntent
+	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
+		return nil, fmt.Errorf("error parsing payment intent: %w", err)
+	}
+
+	return &paymentIntent, nil
 }

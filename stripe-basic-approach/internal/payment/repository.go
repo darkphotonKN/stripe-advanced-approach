@@ -21,14 +21,15 @@ func (r *repository) Create(ctx context.Context, userId uuid.UUID, paymentIntent
 		INSERT INTO payments (
 			user_id,
 			stripe_customer_id,
+			stripe_payment_intent_id,
 			amount, 
 			status,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, $3, $4, NOW(), NOW())
+		) VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
 	`
 
-	_, err := r.db.ExecContext(ctx, query, userId, paymentIntent.CustomerID, paymentIntent.Amount, "pending")
+	_, err := r.db.ExecContext(ctx, query, userId, paymentIntent.CustomerID, paymentIntent.IntentID, paymentIntent.Amount, "pending")
 
 	if err != nil {
 		return err

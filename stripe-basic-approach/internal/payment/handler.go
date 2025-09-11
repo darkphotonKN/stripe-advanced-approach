@@ -3,10 +3,14 @@ package payment
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v82/webhook"
 )
 
 type Handler struct {
@@ -22,6 +26,9 @@ type Service interface {
 	PurchaseProduct(ctx context.Context, userId uuid.UUID, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
+
+	// flow based methods
+	ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error
 }
 
 func NewHandler(service Service) *Handler {
@@ -180,4 +187,31 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 	// 2. ShouldBindJSON would parse/reformat the JSON, breaking signature verification
 	// 3. This ensures the webhook is authentic and hasn't been tampered with
 
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Error reading body"})
+		return
+	}
+
+	// Get Stripe signature from headers
+	signature := c.GetHeader("Stripe-Signature")
+	if signature == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing signature"})
+		return
+	}
+
+	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	event, err := webhook.ConstructEvent(body, signature, webhookSecret)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature"})
+		return
+	}
+
+	// validate signature in service method
+	err = h.service.ProcessWebhookEvent(c.Request.Context(), &event)
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Failed to process stripe event.", "error": err})
+		return
+	}
 }
