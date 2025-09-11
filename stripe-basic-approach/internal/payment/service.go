@@ -14,7 +14,7 @@ type service struct {
 }
 
 type Repository interface {
-	Create(ctx context.Context, userId uuid.UUID, request *CheckoutSessionRequest) error
+	Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
 
@@ -83,7 +83,7 @@ func (s *service) PurchaseProduct(ctx context.Context, userId uuid.UUID, req *Pu
 	fmt.Printf("\npurchase product request: %+v\n\n", req)
 	fmt.Printf("\npurchase product payment processor response: %+v\n\n", res)
 
-	err = s.repo.Create(ctx, userId, &CheckoutSessionRequest{
+	err = s.repo.Create(ctx, userId, &PaymentIntentRequest{
 		CustomerID: req.CustomerID,
 		Amount:     res.Amount,
 	})

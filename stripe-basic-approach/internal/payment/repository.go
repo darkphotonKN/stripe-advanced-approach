@@ -15,7 +15,7 @@ func NewRepository(db *sqlx.DB) Repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, userId uuid.UUID, req *CheckoutSessionRequest) error {
+func (r *repository) Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error {
 
 	query := `
 		INSERT INTO payments (
@@ -28,7 +28,7 @@ func (r *repository) Create(ctx context.Context, userId uuid.UUID, req *Checkout
 		) VALUES ($1, $2, $3, $4, NOW(), NOW())
 	`
 
-	_, err := r.db.ExecContext(ctx, query, userId, req.CustomerID, req.Amount, "pending")
+	_, err := r.db.ExecContext(ctx, query, userId, paymentIntent.CustomerID, paymentIntent.Amount, "pending")
 
 	if err != nil {
 		return err

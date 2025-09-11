@@ -68,5 +68,8 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.POST("/purchase-product", paymentHandler.PurchaseProduct)
 	protected.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
 
+	// for stripe webhooks
+	protected.POST("/webhook/stripe", paymentHandler.HandleStripeWebhook)
+
 	return router
 }

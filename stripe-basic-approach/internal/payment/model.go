@@ -127,11 +127,11 @@ type SubscribeResponse struct {
 	Status         string `json:"status"`          // "incomplete" until payment confirmed
 }
 
-// Checkout session
-
-type CheckoutSessionRequest struct {
+// Payment Intent Request for internal use
+type PaymentIntentRequest struct {
 	CustomerID string `json:"customer_id" db:"customer_id"`
 	Amount     int64  `json:"amount" db:"amount"`
+	IntentID   string `json:"intent_id" db:"stripe_intent_id"`
 }
 
 type CheckoutSessionResponse struct {

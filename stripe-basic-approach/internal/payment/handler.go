@@ -173,3 +173,11 @@ func (h *Handler) SubscribeToProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 }
+
+func (h *Handler) HandleStripeWebhook(c *gin.Context) {
+	// Read raw bytes instead of using gin's ShouldBindJSON because:
+	// 1. Stripe's webhook signature is calculated from the exact bytes sent
+	// 2. ShouldBindJSON would parse/reformat the JSON, breaking signature verification
+	// 3. This ensures the webhook is authentic and hasn't been tampered with
+
+}
