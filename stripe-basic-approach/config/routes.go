@@ -59,6 +59,10 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	paymentService := payment.NewService(paymentRepository, userService, stripeProcessor)
 	paymentHandler := payment.NewHandler(paymentService)
 
+	// for stripe webhooks
+	stripeWebhookAPI := router.Group("/")
+	stripeWebhookAPI.POST("/webhook/stripe", paymentHandler.HandleStripeWebhook)
+
 	protected.POST("/setup-products", paymentHandler.SetupProducts)
 	protected.POST("/setup-subscription", paymentHandler.SetupSubscription)
 	protected.GET("/products", paymentHandler.GetProducts)
@@ -67,9 +71,6 @@ func SetupRoutes(db *sqlx.DB) *gin.Engine {
 	protected.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
 	protected.POST("/purchase-product", paymentHandler.PurchaseProduct)
 	protected.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
-
-	// for stripe webhooks
-	protected.POST("/webhook/stripe", paymentHandler.HandleStripeWebhook)
 
 	return router
 }

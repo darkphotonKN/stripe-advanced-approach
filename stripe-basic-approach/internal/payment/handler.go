@@ -189,6 +189,7 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
+		fmt.Printf("\nError reading body: %+v\n\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error reading body"})
 		return
 	}
@@ -196,13 +197,17 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 	// Get Stripe signature from headers
 	signature := c.GetHeader("Stripe-Signature")
 	if signature == "" {
+		fmt.Printf("\nError Missing Signature: %+v\n\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing signature"})
 		return
 	}
 
 	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+
+	fmt.Printf("\nStripe webhook secret from ENV: %s\n\n", webhookSecret)
 	event, err := webhook.ConstructEvent(body, signature, webhookSecret)
 	if err != nil {
+		fmt.Printf("\nError invalid signature: %+v\n\n", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid signature"})
 		return
 	}

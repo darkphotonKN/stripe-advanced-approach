@@ -112,13 +112,15 @@ func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest)
 // --- Full Flow Methods ---
 
 func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error {
-	fmt.Printf("Processing webhook event: %s\n", event.Type)
+	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
 	parsedPaymentIntent, err := s.parsePaymentProcessorEvent(event)
 
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
 	switch event.Type {
 	case "payment_intent.succeeded":
