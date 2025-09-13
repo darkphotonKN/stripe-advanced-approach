@@ -204,7 +204,6 @@ func (h *Handler) HandleStripeWebhook(c *gin.Context) {
 
 	webhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
 
-	fmt.Printf("\nStripe webhook secret from ENV: %s\n\n", webhookSecret)
 	event, err := webhook.ConstructEvent(body, signature, webhookSecret)
 	if err != nil {
 		fmt.Printf("\nError invalid signature: %+v\n\n", err)

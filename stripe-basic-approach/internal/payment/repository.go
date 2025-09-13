@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -58,11 +59,17 @@ func (r *repository) UpdateStatus(ctx context.Context, intentID string, status s
 	query := `
 		UPDATE payments
 		SET status = $1, updated_at = NOW()
-		WHERE stripe_intent_id = $2
+		WHERE stripe_payment_intent_id = $2
 	`
 
 	_, err := r.db.ExecContext(ctx, query, status, intentID)
-	return err
+
+	if err != nil {
+		fmt.Printf("\nError when updating payment table status column: %+v\n\n", err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error {
