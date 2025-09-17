@@ -111,6 +111,9 @@ func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest)
 
 // --- Full Flow Methods ---
 
+/**
+* Recieves a stripe event and parses the event
+**/
 func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error {
 	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
