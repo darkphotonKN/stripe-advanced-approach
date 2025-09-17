@@ -128,5 +128,11 @@ func (r *repository) UpdateSubscriptionStatus(ctx context.Context, subID string,
 	`
 
 	_, err := r.db.ExecContext(ctx, query, status, subID)
-	return err
+
+	if err != nil {
+		fmt.Printf("\nError when updating subscription status %+v\n\n", err)
+		return err
+	}
+
+	return nil
 }

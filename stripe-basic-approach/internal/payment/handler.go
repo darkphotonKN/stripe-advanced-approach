@@ -25,7 +25,7 @@ type Service interface {
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, userId uuid.UUID, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
-	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
+	SubscribeToProduct(ctx context.Context, userId uuid.UUID, req *SubscribeRequest) (*SubscribeResponse, error)
 
 	// flow based methods
 	ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error
@@ -143,7 +143,6 @@ func (h *Handler) GetProducts(c *gin.Context) {
 }
 
 func (h *Handler) PurchaseProduct(c *gin.Context) {
-
 	userIdStr, _ := c.Get("user_id")
 
 	fmt.Printf("\nPurchasing product with userId: %s\n\n", userIdStr)
@@ -166,13 +165,19 @@ func (h *Handler) PurchaseProduct(c *gin.Context) {
 }
 
 func (h *Handler) SubscribeToProduct(c *gin.Context) {
+	userIdStr, _ := c.Get("user_id")
+
+	fmt.Printf("\nPurchasing product with userId: %s\n\n", userIdStr)
+
+	userId, _ := uuid.Parse(userIdStr.(string))
+
 	var req SubscribeRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	resp, err := h.service.SubscribeToProduct(c.Request.Context(), &req)
+	resp, err := h.service.SubscribeToProduct(c.Request.Context(), userId, &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

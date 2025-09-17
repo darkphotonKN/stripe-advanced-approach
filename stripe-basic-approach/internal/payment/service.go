@@ -105,8 +105,39 @@ func (s *service) SetupSubscription(ctx context.Context, request *SetupProductsR
 	return s.paymentProcessor.SetupSubscription(ctx, request)
 }
 
-func (s *service) SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error) {
-	return s.paymentProcessor.SubscribeToProduct(ctx, req)
+/**
+* Default Stripe-Recommended Flow:
+*
+* 1. Subscribe action
+* User clicks "Subscribe" →  Backend creates Stripe subscription with
+* `payment_behavior: "default_incomplete"` →  Returns client_secret
+* → Frontend confirms payment with Stripe Elements →  User completes payment →
+* Stripe redirects to success page
+*
+* 2. Database Storage (naive implementation, but recommended by Stripe)
+* When subscription created → Store in DB as status: "incomplete" →  Wait for webhooks to update status to "active"
+**/
+func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req *SubscribeRequest) (*SubscribeResponse, error) {
+	res, err := s.paymentProcessor.SubscribeToProduct(ctx, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// store in database a new subscription with data from successful Stripe response
+	err = s.repo.CreateSubscriptionRecord(ctx, &Subscription{
+		UserID:               userId,
+		StripeCustomerID:     req.CustomerID,
+		StripeSubscriptionID: res.SubscriptionID,
+		Status:               res.Status,
+	})
+
+	if err != nil {
+		fmt.Printf("\nError when creating a subscription record in DB: %+v\n\n", err)
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // --- Full Flow Methods ---
@@ -132,6 +163,10 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "failed")
 	case "payment_intent.canceled":
 		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "canceled")
+
+	// TODO: add other subscription statuses
+	case "customer.subscription.created":
+		return s.repo.UpdateSubscriptionStatus(ctx, parsedPaymentIntent.ID, "active")
 	default:
 		fmt.Printf("Unhandled event type: %s\n", event.Type)
 		return nil
