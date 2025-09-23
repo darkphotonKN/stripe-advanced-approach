@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/darkphotonKN/stripe-basic-approach/config"
+	"github.com/darkphotonKN/stripe-advanced-approach/config"
 	"github.com/joho/godotenv"
 	"github.com/stripe/stripe-go/v82"
 )

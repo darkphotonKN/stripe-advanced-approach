@@ -1,4 +1,4 @@
-module github.com/darkphotonKN/stripe-basic-approach
+module github.com/darkphotonKN/stripe-advanced-approach
 
 go 1.24.2
 

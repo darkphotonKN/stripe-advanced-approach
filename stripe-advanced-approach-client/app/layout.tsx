@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Basic Stripe Integration",
-  description: "A basic Stripe integration demo",
+  title: "Advanced Stripe Integration",
+  description: "An advanced Stripe integration POC",
 };
 
 export default function RootLayout({

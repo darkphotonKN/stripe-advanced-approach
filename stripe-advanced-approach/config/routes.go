@@ -7,9 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
-	"github.com/darkphotonKN/stripe-basic-approach/internal/middleware"
-	"github.com/darkphotonKN/stripe-basic-approach/internal/payment"
-	"github.com/darkphotonKN/stripe-basic-approach/internal/user"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/middleware"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/payment"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 )
 
 func SetupRoutes(db *sqlx.DB) *gin.Engine {
