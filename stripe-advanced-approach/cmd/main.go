@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/config"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
 	"github.com/joho/godotenv"
 	"github.com/stripe/stripe-go/v82"
 )
@@ -24,6 +26,22 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
+	// initialize Redis
+	redisConfig := config.NewRedisConfig()
+	redisClient := redis.NewClient(redisConfig)
+
+	ctx := context.Background()
+	if err := redisClient.Connect(ctx); err != nil {
+		log.Fatal("Failed to connect to Redis:", err)
+	}
+	defer redisClient.Close()
+
+	// test Redis connection
+	if err := redisClient.Ping(ctx); err != nil {
+		log.Fatal("Failed to ping Redis:", err)
+	}
+	log.Println("Successfully connected to Redis at", redisConfig.GetAddr())
+
 	// setup stripe
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
@@ -39,4 +57,3 @@ func main() {
 		log.Fatal("Failed to start server:", err)
 	}
 }
-

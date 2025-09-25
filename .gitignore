@@ -31,6 +31,7 @@ tmp/
 *.sqlite
 *.sqlite3
 postgres_data/
+redis_data/
 
 # Logs
 *.log

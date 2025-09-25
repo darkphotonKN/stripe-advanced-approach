@@ -37,6 +37,10 @@ func NewService(repo Repository, userService PaymentUserService, paymentProcesso
 	}
 }
 
+/**
+* Primary method for syncing up
+**/
+
 func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	return s.paymentProcessor.SetupProducts(ctx, request)
 }
