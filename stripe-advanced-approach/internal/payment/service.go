@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v82/customer"
 )
 
 type service struct {
@@ -37,9 +38,56 @@ func NewService(repo Repository, userService PaymentUserService, paymentProcesso
 	}
 }
 
+/*
+*
+*
+* Primary method for syncing up stripe-related states and avoiding a split-brain problem.
+*
+* Since payment table's status comes from stripe, we need to at least get that validated from stripe's more
+* consistent apis, as opposed to webhooks, to store in the KV for easy access but at the same time update the database
+* once we have it validated.
+*
+* The key-value cache structure will be as follows:
+
+Key: stripe:customer:{customerId}
+
+	Value: {
+	  subscriptionId: "sub_xyz",
+	  status: "active",           // Core validation field
+	  priceId: "price_abc",       // Feature access control
+	  currentPeriodEnd: 1234567,  // Billing cycle info
+	  cancelAtPeriodEnd: false    // Immediate cancellation status
+	}
+
+Key: stripe:user:{userId}
+Value: "cus_stripe123"        // Customer ID mapping
+
+* Database storage will store the same things but into the respective areas
+*
+*/
+func (s *service) SyncStripeDataToStorage(customerId string) error {
+
+	customer, err := customer.Get(customerId, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get customer from stripe: %w", err)
+	}
+
+	customerJSON, err := json.MarshalIndent(customer, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal customer data: %w", err)
+	}
+
+	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
+
+	return nil
+}
+
 /**
-* Primary method for syncing up
+* The get version of the stripe sync method. Gets the latest up-to-date data from the cache if it exists,
+* otherwise calls the sync method to update the cache.
 **/
+func (s *service) GetStripeData() {
+}
 
 func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
 	return s.paymentProcessor.SetupProducts(ctx, request)

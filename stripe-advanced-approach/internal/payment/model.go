@@ -15,7 +15,7 @@ type Payment struct {
 	StripeSessionID    string     `db:"stripe_session_id" json:"stripe_session_id"`
 	Amount             int64      `db:"amount" json:"amount"`
 	Currency           string     `db:"currency" json:"currency"`
-	Status             string     `db:"status" json:"status"`
+	Status             string     `db:"status" json:"status"` // synced from stripe
 	PaymentMethodTypes string     `db:"payment_method_types" json:"payment_method_types"`
 	CreatedAt          time.Time  `db:"created_at" json:"created_at"`
 	UpdatedAt          time.Time  `db:"updated_at" json:"updated_at"`
