@@ -66,7 +66,6 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(customerId string) error {
-
 	customer, err := customer.Get(customerId, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
