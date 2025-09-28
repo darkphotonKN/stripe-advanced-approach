@@ -13,7 +13,7 @@ import (
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 )
 
-func SetupRoutes(db *sqlx.DB, cacheClient interfaces.CacheClient) *gin.Engine {
+func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	router := gin.Default()
 
 	// NOTE: debugging middleware
