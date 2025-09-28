@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/util"
@@ -29,16 +30,80 @@ func NewClient() *Client {
 		rdb: rdb,
 	}
 }
-
 func (c *Client) Connect(ctx context.Context) error {
-	// connect to redis
+	// Test the connection
+	_, err := c.rdb.Ping(ctx).Result()
+	if err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+	fmt.Printf("Redis client connected successfully to %s\n", util.GetEnv("REDIS_ADDR", "localhost:6379"))
 	return nil
 }
 
 func (c *Client) Close() error {
-	return nil
+	return c.rdb.Close()
 }
 
 func (c *Client) Ping(ctx context.Context) error {
 	return c.rdb.Ping(ctx).Err()
+}
+
+func (c *Client) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	return c.rdb.Set(ctx, key, value, expiration).Err()
+}
+
+func (c *Client) Get(ctx context.Context, key string) (string, error) {
+	return c.rdb.Get(ctx, key).Result()
+}
+
+func (c *Client) Del(ctx context.Context, keys ...string) error {
+	return c.rdb.Del(ctx, keys...).Err()
+}
+
+func (c *Client) SetNX(ctx context.Context, key string, value interface{}, expiration time.Duration) (bool, error) {
+	result := c.rdb.SetNX(ctx, key, value, expiration)
+	return result.Val(), result.Err()
+}
+
+func (c *Client) Pipeline() redislib.Pipeliner {
+	return c.rdb.Pipeline()
+}
+
+func (c *Client) Exists(ctx context.Context, key string) (bool, error) {
+	result := c.rdb.Exists(ctx, key)
+	return result.Val() > 0, result.Err()
+}
+
+// TTL returns the remaining time to live of a key
+func (c *Client) TTL(ctx context.Context, key string) (time.Duration, error) {
+	return c.rdb.TTL(ctx, key).Result()
+}
+
+// Expire sets a timeout on a key
+func (c *Client) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	return c.rdb.Expire(ctx, key, expiration).Err()
+}
+
+// Keys finds all keys matching a pattern (use carefully in production)
+func (c *Client) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return c.rdb.Keys(ctx, pattern).Result()
+}
+
+// GetSetJSON is a helper for JSON operations
+func (c *Client) GetSetJSON(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+	jsonData, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	return c.Set(ctx, key, jsonData, expiration)
+}
+
+// GetJSON is a helper for JSON retrieval
+func (c *Client) GetJSON(ctx context.Context, key string, dest interface{}) error {
+	jsonStr, err := c.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal([]byte(jsonStr), dest)
 }

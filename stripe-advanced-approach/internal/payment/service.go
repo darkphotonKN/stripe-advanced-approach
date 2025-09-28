@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/google/uuid"
@@ -66,8 +67,7 @@ Value: "cus_stripe123"        // Customer ID mapping
 * Database storage will store the same things but into the respective areas
 *
 */
-func (s *service) SyncStripeDataToStorage(customerId string) error {
-
+func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
 	if err != nil {
@@ -81,20 +81,11 @@ func (s *service) SyncStripeDataToStorage(customerId string) error {
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
 	// update redis
+	err = s.cacheClient.Set(ctx, "stripe:customer", customerJSON, 0)
 
-	/* Redis example
-	// Store JSON in Redis
-	err = rdb.Set(ctx, "post:123", postJSON, 24*time.Hour).Err()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
 	}
-
-	// Retrieve and parse JSON
-	postJSONStr, err := rdb.Get(ctx, "post:123").Result()
-	if err != nil {
-		panic(err)
-	}
-	*/
 
 	return nil
 }
