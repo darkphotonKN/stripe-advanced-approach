@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/google/uuid"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
@@ -13,6 +14,7 @@ import (
 type service struct {
 	userService      PaymentUserService
 	paymentProcessor PaymentProcessor
+	cacheClient      interfaces.CacheClient
 	repo             Repository
 }
 
@@ -66,17 +68,34 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(customerId string) error {
+
+	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
 	}
-
 	customerJSON, err := json.MarshalIndent(customer, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal customer data: %w", err)
 	}
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
+
+	// update redis
+
+	/* Redis example
+	// Store JSON in Redis
+	err = rdb.Set(ctx, "post:123", postJSON, 24*time.Hour).Err()
+	if err != nil {
+		panic(err)
+	}
+
+	// Retrieve and parse JSON
+	postJSONStr, err := rdb.Get(ctx, "post:123").Result()
+	if err != nil {
+		panic(err)
+	}
+	*/
 
 	return nil
 }

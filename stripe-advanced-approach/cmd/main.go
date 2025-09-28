@@ -46,7 +46,7 @@ func main() {
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
 
 	// setup routes
-	router := config.SetupRoutes(db)
+	router := config.SetupRoutes(db, redisClient)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"

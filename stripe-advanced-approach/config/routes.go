@@ -7,12 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/middleware"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/payment"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 )
 
-func SetupRoutes(db *sqlx.DB) *gin.Engine {
+func SetupRoutes(db *sqlx.DB, cacheClient interfaces.CacheClient) *gin.Engine {
 	router := gin.Default()
 
 	// NOTE: debugging middleware
