@@ -14,7 +14,7 @@ import (
 type service struct {
 	userService      PaymentUserService
 	paymentProcessor PaymentProcessor
-	cacheClient      interfaces.CacheClient
+	cacheClient      interfaces.Cache
 	repo             Repository
 }
 
@@ -22,7 +22,6 @@ type Repository interface {
 	Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
-
 	CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error
 	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error)
 	UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error

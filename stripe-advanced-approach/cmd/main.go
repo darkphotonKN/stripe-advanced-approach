@@ -27,8 +27,7 @@ func main() {
 	}
 
 	// initialize Redis
-	redisConfig := config.NewRedisConfig()
-	redisClient := redis.NewClient(redisConfig)
+	redisClient := redis.NewClient()
 
 	ctx := context.Background()
 	if err := redisClient.Connect(ctx); err != nil {
@@ -40,7 +39,6 @@ func main() {
 	if err := redisClient.Ping(ctx); err != nil {
 		log.Fatal("Failed to ping Redis:", err)
 	}
-	log.Println("Successfully connected to Redis at", redisConfig.GetAddr())
 
 	// setup stripe
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
