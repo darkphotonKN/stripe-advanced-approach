@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/google/uuid"
@@ -32,11 +31,12 @@ type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 }
 
-func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor) *service {
+func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor, cacheClient interfaces.Cache) *service {
 	return &service{
 		repo:             repo,
 		userService:      userService,
 		paymentProcessor: paymentProcessor,
+		cacheClient:      cacheClient,
 	}
 }
 
@@ -68,11 +68,14 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
+
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
+
 	if err != nil {
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
 	}
+
 	customerJSON, err := json.MarshalIndent(customer, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal customer data: %w", err)

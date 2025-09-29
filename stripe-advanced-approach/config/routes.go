@@ -57,7 +57,7 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	// payment setup
 	stripeProcessor := payment.NewStripeProcessor()
 	paymentRepository := payment.NewRepository(db)
-	paymentService := payment.NewService(paymentRepository, userService, stripeProcessor)
+	paymentService := payment.NewService(paymentRepository, userService, stripeProcessor, cacheClient)
 	paymentHandler := payment.NewHandler(paymentService)
 
 	// for stripe webhooks
