@@ -139,6 +139,31 @@ type CheckoutSessionResponse struct {
 	CheckoutURL string `json:"checkout_url"`
 }
 
-// Success
-type SuccessReponse struct {
+// stripe customer cached data
+type StripeCacheData struct {
+	ID                   string            `json:"id"`
+	InvoiceCreditBalance interface{}       `json:"invoice_credit_balance"`
+	InvoicePrefix        string            `json:"invoice_prefix"`
+	InvoiceSettings      InvoiceSettings   `json:"invoice_settings"`
+	Livemode             bool              `json:"livemode"`
+	Metadata             map[string]string `json:"metadata"`
+	Name                 string            `json:"name"`
+	NextInvoiceSequence  int               `json:"next_invoice_sequence"`
+	Object               string            `json:"object"`
+	Phone                string            `json:"phone"`
+	PreferredLocales     []string          `json:"preferred_locales"`
+	Shipping             interface{}       `json:"shipping"`
+	Sources              interface{}       `json:"sources"`
+	Subscriptions        interface{}       `json:"subscriptions"`
+	Tax                  interface{}       `json:"tax"`
+	TaxExempt            string            `json:"tax_exempt"`
+	TaxIds               interface{}       `json:"tax_ids"`
+	TestClock            interface{}       `json:"test_clock"`
+}
+
+type InvoiceSettings struct {
+	CustomFields         interface{} `json:"custom_fields"`
+	DefaultPaymentMethod interface{} `json:"default_payment_method"`
+	Footer               string      `json:"footer"`
+	RenderingOptions     interface{} `json:"rendering_options"`
 }

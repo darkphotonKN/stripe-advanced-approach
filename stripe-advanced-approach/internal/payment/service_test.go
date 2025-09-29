@@ -85,12 +85,7 @@ func TestGetStripeData(t *testing.T) {
 	suite := setupTestSuite(t)
 	defer suite.Cleanup()
 
-	err := suite.service.SyncStripeDataToStorage(suite.ctx, "cus_Sv7wygVCW12KLE")
-	if err != nil {
-		t.Logf("Failed to sync data: %v", err)
-	}
-
-	err = suite.service.GetStripeData(suite.ctx, "stripe:customer:cus_Sv7wygVCW12KLE")
+	_, err := suite.service.GetStripeData(suite.ctx, "stripe:customer:cus_Sv7wygVCW12KLE")
 	if err != nil {
 		t.Logf("Failed to get cached data: %v", err)
 	}

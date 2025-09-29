@@ -7,6 +7,7 @@ import (
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/google/uuid"
+	redislib "github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
 )
@@ -98,17 +99,33 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 * The get version of the stripe sync method. Gets the latest up-to-date data from the cache if it exists,
 * otherwise calls the sync method to update the cache.
 **/
-func (s *service) GetStripeData(ctx context.Context, customerId string) error {
-	// check if it exists in the cache
+func (s *service) GetStripeData(ctx context.Context, customerId string) (*StripeCacheData, error) {
+	// check if customer data already exists in the cache
 	data, err := s.cacheClient.Get(ctx, customerId)
 
-	if err != nil {
-		fmt.Printf("error when attempting to get cache data for customerID %s\nerr was:\n%+v\n", customerId, err)
-		return err
+	// if it doesn't we sync the data right there
+	if err != redislib.Nil {
+		fmt.Printf("Customer data doesn't exist in cache.")
+
+		// sync data to cache
+		s.SyncStripeDataToStorage(ctx, customerId)
 	}
 
-	fmt.Printf("\ncache data: %+v\n\n", data)
-	return nil
+	// handle other exceptions
+	if err != nil {
+		fmt.Printf("error when attempting to get cache data for customerID %s\nerr was:\n%+v\n", customerId, err)
+		return nil, err
+	}
+
+	// data already exists, just unmarshal and return it
+	fmt.Printf("\ncache data before unmarshal: %+v\n\n", data)
+
+	var cacheData StripeCacheData
+
+	err = json.Unmarshal([]byte(data), &cacheData)
+
+	fmt.Printf("\ncache data after unmarshal: %+v\n\n", cacheData)
+	return &cacheData, nil
 }
 
 func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
