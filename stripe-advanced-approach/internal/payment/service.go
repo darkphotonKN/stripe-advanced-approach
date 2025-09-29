@@ -84,7 +84,8 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
 	// update redis
-	err = s.cacheClient.Set(ctx, "stripe:customer", customerJSON, 0)
+	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
+	err = s.cacheClient.Set(ctx, stripeCusKey, customerJSON, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
@@ -97,7 +98,17 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 * The get version of the stripe sync method. Gets the latest up-to-date data from the cache if it exists,
 * otherwise calls the sync method to update the cache.
 **/
-func (s *service) GetStripeData() {
+func (s *service) GetStripeData(ctx context.Context, customerId string) error {
+	// check if it exists in the cache
+	data, err := s.cacheClient.Get(ctx, customerId)
+
+	if err != nil {
+		fmt.Printf("error when attempting to get cache data for customerID %s\nerr was:\n%+v\n", customerId, err)
+		return err
+	}
+
+	fmt.Printf("\ncache data: %+v\n\n", data)
+	return nil
 }
 
 func (s *service) SetupProducts(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error) {
