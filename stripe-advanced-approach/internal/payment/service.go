@@ -97,17 +97,16 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	iter := subscription.List(params)
 
-	// Check if customer has subscriptions
+	// validates that customer has subscriptions
 	if !iter.Next() {
-		// No subscriptions case
+		// no subscription
 		noSubData := map[string]interface{}{
 			"status": "none",
 		}
 
 		noSubJSON, _ := json.Marshal(noSubData)
-		key := fmt.Sprintf("stripe:customer:%s", customerId)
 
-		err := s.cacheClient.Set(ctx, key, noSubJSON, 0)
+		err := s.cacheClient.Set(ctx, stripeCusKey, noSubJSON, 0)
 		if err != nil {
 			return fmt.Errorf("failed to cache no subscription data: %w", err)
 		}
@@ -123,7 +122,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
 	}
 
-	// Extract payment method info safely
+	// extract payment method info safely
 	var pmInfo *PaymentMethodInfo
 	if sub.DefaultPaymentMethod != nil && sub.DefaultPaymentMethod.Card != nil {
 		pmInfo = &PaymentMethodInfo{
@@ -132,15 +131,24 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		}
 	}
 
-	// Build the cache data (matching Theo's structure)
-	subCache := &StripeSubscriptionCache{
-		SubscriptionID:     sub.ID,
-		Status:             string(sub.Status),
-		PriceID:            sub.Items.Data[0].Price.ID,
-		CurrentPeriodStart: sub.CurrentPeriodStart,
-		CurrentPeriodEnd:   sub.CurrentPeriodEnd,
-		CancelAtPeriodEnd:  sub.CancelAtPeriodEnd,
-		PaymentMethod:      pmInfo,
+	// build the subscriptions / payment cache data
+	subCache := StripeSubscriptionCache{
+		SubscriptionID:    sub.ID,
+		Status:            string(sub.Status),
+		PriceID:           sub.Items.Data[0].Price.ID,
+		CancelAtPeriodEnd: sub.CancelAtPeriodEnd,
+		PaymentMethod:     pmInfo,
+	}
+
+	// customer data
+	stripeCusData := json.Unmarshal()
+
+	// combine the two pieces of information into one cache state
+	cacheState := StripeCacheData{
+		customerData: StripeCustomerDataRes{
+			ID: customer.ID,
+		},
+		subscriptions: subCache,
 	}
 
 	// update redis

@@ -141,6 +141,23 @@ type CheckoutSessionResponse struct {
 
 // stripe customer cached data
 type StripeCacheData struct {
+	customerData  StripeCustomerDataRes
+	subscriptions StripeSubscriptionCache
+}
+type StripeSubscriptionCache struct {
+	SubscriptionID    string             `json:"subscription_id"`
+	Status            string             `json:"status"`
+	PriceID           string             `json:"price_id"`
+	CancelAtPeriodEnd bool               `json:"cancel_at_period_end"`
+	PaymentMethod     *PaymentMethodInfo `json:"payment_method,omitempty"`
+}
+
+type PaymentMethodInfo struct {
+	Brand string `json:"brand"` // e.g., "visa", "mastercard"
+	Last4 string `json:"last4"` // e.g., "4242"
+}
+
+type StripeCustomerDataRes struct {
 	ID                   string                   `json:"id"`
 	Address              *CustomerAddress         `json:"address"`
 	Balance              int64                    `json:"balance"`
