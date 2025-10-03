@@ -10,6 +10,7 @@ import (
 	redislib "github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
+	"github.com/stripe/stripe-go/v82/subscription"
 )
 
 type service struct {
@@ -69,6 +70,7 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
+	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
 
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
@@ -84,13 +86,75 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
+	// get subscription data
+	params := &stripe.SubscriptionListParams{
+		Customer: stripe.String(customerId),
+		Status:   stripe.String("all"),
+	}
+
+	// expand the payment method to get card details
+	params.AddExpand("data.default_payment_method")
+
+	iter := subscription.List(params)
+
+	// Check if customer has subscriptions
+	if !iter.Next() {
+		// No subscriptions case
+		noSubData := map[string]interface{}{
+			"status": "none",
+		}
+
+		noSubJSON, _ := json.Marshal(noSubData)
+		key := fmt.Sprintf("stripe:customer:%s", customerId)
+
+		err := s.cacheClient.Set(ctx, key, noSubJSON, 0)
+		if err != nil {
+			return fmt.Errorf("failed to cache no subscription data: %w", err)
+		}
+
+		return nil
+	}
+
+	// Get the subscription
+	sub := iter.Subscription()
+
+	// Handle iteration error
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
+	}
+
+	// Extract payment method info safely
+	var pmInfo *PaymentMethodInfo
+	if sub.DefaultPaymentMethod != nil && sub.DefaultPaymentMethod.Card != nil {
+		pmInfo = &PaymentMethodInfo{
+			Brand: string(sub.DefaultPaymentMethod.Card.Brand),
+			Last4: sub.DefaultPaymentMethod.Card.Last4,
+		}
+	}
+
+	// Build the cache data (matching Theo's structure)
+	subCache := &StripeSubscriptionCache{
+		SubscriptionID:     sub.ID,
+		Status:             string(sub.Status),
+		PriceID:            sub.Items.Data[0].Price.ID,
+		CurrentPeriodStart: sub.CurrentPeriodStart,
+		CurrentPeriodEnd:   sub.CurrentPeriodEnd,
+		CancelAtPeriodEnd:  sub.CancelAtPeriodEnd,
+		PaymentMethod:      pmInfo,
+	}
+
 	// update redis
-	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
 	err = s.cacheClient.Set(ctx, stripeCusKey, customerJSON, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
 	}
+
+	// update application database for the respective tables
+
+	// user
+
+	// payments
 
 	return nil
 }

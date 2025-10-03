@@ -141,29 +141,150 @@ type CheckoutSessionResponse struct {
 
 // stripe customer cached data
 type StripeCacheData struct {
-	ID                   string            `json:"id"`
-	InvoiceCreditBalance interface{}       `json:"invoice_credit_balance"`
-	InvoicePrefix        string            `json:"invoice_prefix"`
-	InvoiceSettings      InvoiceSettings   `json:"invoice_settings"`
-	Livemode             bool              `json:"livemode"`
-	Metadata             map[string]string `json:"metadata"`
-	Name                 string            `json:"name"`
-	NextInvoiceSequence  int               `json:"next_invoice_sequence"`
-	Object               string            `json:"object"`
-	Phone                string            `json:"phone"`
-	PreferredLocales     []string          `json:"preferred_locales"`
-	Shipping             interface{}       `json:"shipping"`
-	Sources              interface{}       `json:"sources"`
-	Subscriptions        interface{}       `json:"subscriptions"`
-	Tax                  interface{}       `json:"tax"`
-	TaxExempt            string            `json:"tax_exempt"`
-	TaxIds               interface{}       `json:"tax_ids"`
-	TestClock            interface{}       `json:"test_clock"`
+	ID                   string                   `json:"id"`
+	Address              *CustomerAddress         `json:"address"`
+	Balance              int64                    `json:"balance"`
+	CashBalance          *CustomerCashBalance     `json:"cash_balance"`
+	Created              int64                    `json:"created"`
+	Currency             string                   `json:"currency"`
+	DefaultSource        *string                  `json:"default_source"`
+	Deleted              bool                     `json:"deleted"`
+	Delinquent           bool                     `json:"delinquent"`
+	Description          string                   `json:"description"`
+	Discount             *CustomerDiscount        `json:"discount"`
+	Email                string                   `json:"email"`
+	InvoiceCreditBalance map[string]int64         `json:"invoice_credit_balance"`
+	InvoicePrefix        string                   `json:"invoice_prefix"`
+	InvoiceSettings      *CustomerInvoiceSettings `json:"invoice_settings"`
+	Livemode             bool                     `json:"livemode"`
+	Metadata             map[string]string        `json:"metadata"`
+	Name                 string                   `json:"name"`
+	NextInvoiceSequence  int64                    `json:"next_invoice_sequence"`
+	Object               string                   `json:"object"`
+	Phone                string                   `json:"phone"`
+	PreferredLocales     []string                 `json:"preferred_locales"`
+	Shipping             *CustomerShipping        `json:"shipping"`
+	Sources              *CustomerSourceList      `json:"sources"`
+	Subscriptions        *SubscriptionList        `json:"subscriptions"`
+	Tax                  *CustomerTax             `json:"tax"`
+	TaxExempt            string                   `json:"tax_exempt"`
+	TaxIds               *CustomerTaxIdList       `json:"tax_ids"`
+	TestClock            *TestClock               `json:"test_clock"`
 }
 
-type InvoiceSettings struct {
-	CustomFields         interface{} `json:"custom_fields"`
-	DefaultPaymentMethod interface{} `json:"default_payment_method"`
-	Footer               string      `json:"footer"`
-	RenderingOptions     interface{} `json:"rendering_options"`
+type CustomerAddress struct {
+	City       string `json:"city"`
+	Country    string `json:"country"`
+	Line1      string `json:"line1"`
+	Line2      string `json:"line2"`
+	PostalCode string `json:"postal_code"`
+	State      string `json:"state"`
+}
+
+type CustomerCashBalance struct {
+	Object    string           `json:"object"`
+	Available map[string]int64 `json:"available"`
+	Customer  string           `json:"customer"`
+	Livemode  bool             `json:"livemode"`
+}
+
+type CustomerDiscount struct {
+	Coupon   *Coupon `json:"coupon"`
+	Customer string  `json:"customer"`
+	End      int64   `json:"end"`
+	Id       string  `json:"id"`
+	Object   string  `json:"object"`
+	Start    int64   `json:"start"`
+}
+
+type CustomerInvoiceSettings struct {
+	CustomFields         []*InvoiceCustomField    `json:"custom_fields"`
+	DefaultPaymentMethod *string                  `json:"default_payment_method"`
+	Footer               string                   `json:"footer"`
+	RenderingOptions     *InvoiceRenderingOptions `json:"rendering_options"`
+}
+
+type InvoiceCustomField struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type InvoiceRenderingOptions struct {
+	AmountTaxDisplay string `json:"amount_tax_display"`
+}
+
+type CustomerShipping struct {
+	Address *CustomerAddress `json:"address"`
+	Name    string           `json:"name"`
+	Phone   string           `json:"phone"`
+}
+
+type CustomerSourceList struct {
+	Object  string        `json:"object"`
+	Data    []interface{} `json:"data"`
+	HasMore bool          `json:"has_more"`
+	Url     string        `json:"url"`
+}
+
+type SubscriptionList struct {
+	Object  string        `json:"object"`
+	Data    []interface{} `json:"data"`
+	HasMore bool          `json:"has_more"`
+	Url     string        `json:"url"`
+}
+
+type CustomerTax struct {
+	AutomaticTax string               `json:"automatic_tax"`
+	IpAddress    string               `json:"ip_address"`
+	Location     *CustomerTaxLocation `json:"location"`
+}
+
+type CustomerTaxLocation struct {
+	Country string `json:"country"`
+	Source  string `json:"source"`
+	State   string `json:"state"`
+}
+
+type CustomerTaxIdList struct {
+	Object  string          `json:"object"`
+	Data    []CustomerTaxId `json:"data"`
+	HasMore bool            `json:"has_more"`
+	Url     string          `json:"url"`
+}
+
+type CustomerTaxId struct {
+	Id       string `json:"id"`
+	Object   string `json:"object"`
+	Country  string `json:"country"`
+	Customer string `json:"customer"`
+	Type     string `json:"type"`
+	Value    string `json:"value"`
+}
+
+type TestClock struct {
+	Id         string `json:"id"`
+	Object     string `json:"object"`
+	Created    int64  `json:"created"`
+	DelayedBy  int64  `json:"delayed_by"`
+	FrozenTime int64  `json:"frozen_time"`
+	Livemode   bool   `json:"livemode"`
+	Name       string `json:"name"`
+	Status     string `json:"status"`
+}
+
+type Coupon struct {
+	Id               string  `json:"id"`
+	Object           string  `json:"object"`
+	AmountOff        int64   `json:"amount_off"`
+	Created          int64   `json:"created"`
+	Currency         string  `json:"currency"`
+	Duration         string  `json:"duration"`
+	DurationInMonths int64   `json:"duration_in_months"`
+	Livemode         bool    `json:"livemode"`
+	MaxRedemptions   int64   `json:"max_redemptions"`
+	Name             string  `json:"name"`
+	PercentOff       float64 `json:"percent_off"`
+	RedeemBy         int64   `json:"redeem_by"`
+	TimesRedeemed    int64   `json:"times_redeemed"`
+	Valid            bool    `json:"valid"`
 }
