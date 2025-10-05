@@ -175,14 +175,21 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		Subscriptions: subCache,
 	}
 
+	cacheStateJSON, err := json.Marshal(cacheState)
+
+	if err != nil {
+		return fmt.Errorf("failed to marshal cacheState: %w", err)
+	}
+
 	// update redis
-	err = s.cacheClient.Set(ctx, stripeCusKey, cacheState, 0)
+	err = s.cacheClient.Set(ctx, stripeCusKey, cacheStateJSON, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
 	}
 
 	// update application database for the respective tables
+	s.repo.CreateSubscriptionRecord() // temp
 
 	// user
 
