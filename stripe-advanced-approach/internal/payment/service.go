@@ -141,18 +141,42 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// customer data
-	stripeCusData := json.Unmarshal()
+	stripeCusData := StripeCustomerDataRes{
+		ID:                   customer.ID,
+		Address:              convertAddress(customer.Address),
+		Balance:              customer.Balance,
+		CashBalance:          convertCashBalance(customer.CashBalance),
+		Created:              customer.Created,
+		Currency:             string(customer.Currency),
+		DefaultSource:        convertDefaultSource(customer.DefaultSource),
+		Deleted:              customer.Deleted,
+		Delinquent:           customer.Delinquent,
+		Description:          customer.Description,
+		Discount:             convertDiscount(customer.Discount),
+		Email:                customer.Email,
+		InvoiceCreditBalance: customer.InvoiceCreditBalance,
+		InvoicePrefix:        customer.InvoicePrefix,
+		InvoiceSettings:      convertInvoiceSettings(customer.InvoiceSettings),
+		Livemode:             customer.Livemode,
+		Metadata:             customer.Metadata,
+		Name:                 customer.Name,
+		NextInvoiceSequence:  customer.NextInvoiceSequence,
+		Object:               customer.Object,
+		Phone:                customer.Phone,
+		PreferredLocales:     customer.PreferredLocales,
+		Subscriptions:        convertSubscriptions(customer.Subscriptions),
+		Tax:                  convertTax(customer.Tax),
+		TaxExempt:            string(customer.TaxExempt),
+	}
 
 	// combine the two pieces of information into one cache state
 	cacheState := StripeCacheData{
-		customerData: StripeCustomerDataRes{
-			ID: customer.ID,
-		},
-		subscriptions: subCache,
+		CustomerData:  stripeCusData,
+		Subscriptions: subCache,
 	}
 
 	// update redis
-	err = s.cacheClient.Set(ctx, stripeCusKey, customerJSON, 0)
+	err = s.cacheClient.Set(ctx, stripeCusKey, cacheState, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
@@ -343,4 +367,174 @@ func (s *service) parsePaymentProcessorEvent(event *stripe.Event) (*stripe.Payme
 	}
 
 	return &paymentIntent, nil
+}
+
+// Helper functions to convert Stripe types to our cache types
+func convertAddress(addr *stripe.Address) *CustomerAddress {
+	if addr == nil {
+		return nil
+	}
+	return &CustomerAddress{
+		City:       addr.City,
+		Country:    addr.Country,
+		Line1:      addr.Line1,
+		Line2:      addr.Line2,
+		PostalCode: addr.PostalCode,
+		State:      addr.State,
+	}
+}
+
+func convertCashBalance(cb *stripe.CashBalance) *CustomerCashBalance {
+	if cb == nil {
+		return nil
+	}
+	return &CustomerCashBalance{
+		Object:    cb.Object,
+		Available: cb.Available,
+		Customer:  cb.Customer,
+		Livemode:  cb.Livemode,
+	}
+}
+
+func convertDefaultSource(ds *stripe.PaymentSource) *string {
+	if ds == nil {
+		return nil
+	}
+	id := ds.ID
+	return &id
+}
+
+func convertDiscount(d *stripe.Discount) *CustomerDiscount {
+	if d == nil {
+		return nil
+	}
+	return &CustomerDiscount{
+		Coupon:   convertCoupon(d.Coupon),
+		Customer: d.ID,
+		End:      d.End,
+		Id:       d.ID,
+		Object:   d.Object,
+		Start:    d.Start,
+	}
+}
+
+func convertCoupon(c *stripe.Coupon) *Coupon {
+	if c == nil {
+		return nil
+	}
+	return &Coupon{
+		Id:               c.ID,
+		Object:           c.Object,
+		AmountOff:        c.AmountOff,
+		Created:          c.Created,
+		Currency:         string(c.Currency),
+		Duration:         string(c.Duration),
+		DurationInMonths: c.DurationInMonths,
+		Livemode:         c.Livemode,
+		MaxRedemptions:   c.MaxRedemptions,
+		Name:             c.Name,
+		PercentOff:       c.PercentOff,
+		RedeemBy:         c.RedeemBy,
+		TimesRedeemed:    c.TimesRedeemed,
+		Valid:            c.Valid,
+	}
+}
+
+func convertInvoiceSettings(is *stripe.CustomerInvoiceSettings) *CustomerInvoiceSettings {
+	if is == nil {
+		return nil
+	}
+
+	var customFields []*InvoiceCustomField
+	for _, cf := range is.CustomFields {
+		if cf != nil {
+			customFields = append(customFields, &InvoiceCustomField{
+				Name:  cf.Name,
+				Value: cf.Value,
+			})
+		}
+	}
+
+	var defaultPM *string
+	if is.DefaultPaymentMethod != nil {
+		id := is.DefaultPaymentMethod.ID
+		defaultPM = &id
+	}
+
+	var renderingOpts *InvoiceRenderingOptions
+	if is.RenderingOptions != nil {
+		renderingOpts = &InvoiceRenderingOptions{
+			AmountTaxDisplay: string(is.RenderingOptions.AmountTaxDisplay),
+		}
+	}
+
+	return &CustomerInvoiceSettings{
+		CustomFields:         customFields,
+		DefaultPaymentMethod: defaultPM,
+		Footer:               is.Footer,
+		RenderingOptions:     renderingOpts,
+	}
+}
+
+func convertSubscriptions(s *stripe.SubscriptionList) *SubscriptionList {
+	if s == nil {
+		return nil
+	}
+
+	var data []interface{}
+	for _, sub := range s.Data {
+		data = append(data, sub)
+	}
+
+	return &SubscriptionList{
+		Data:    data,
+		HasMore: s.HasMore,
+		Url:     s.URL,
+	}
+}
+
+func convertTax(t *stripe.CustomerTax) *CustomerTax {
+	if t == nil {
+		return nil
+	}
+
+	var location *CustomerTaxLocation
+	if t.Location != nil {
+		location = &CustomerTaxLocation{
+			Country: t.Location.Country,
+			Source:  string(t.Location.Source),
+			State:   t.Location.State,
+		}
+	}
+
+	return &CustomerTax{
+		AutomaticTax: string(t.AutomaticTax),
+		IpAddress:    t.IPAddress,
+		Location:     location,
+	}
+}
+
+func convertTaxIds(t *stripe.TaxIDList) *CustomerTaxIdList {
+	if t == nil {
+		return nil
+	}
+
+	var data []CustomerTaxId
+	for _, taxId := range t.Data {
+		if taxId != nil {
+			data = append(data, CustomerTaxId{
+				Id:      taxId.ID,
+				Object:  taxId.Object,
+				Country: taxId.Country,
+				Type:    string(taxId.Type),
+				Value:   taxId.Value,
+			})
+		}
+	}
+
+	return &CustomerTaxIdList{
+		Data:    data,
+		HasMore: t.HasMore,
+		Url:     t.URL,
+	}
 }

@@ -141,9 +141,10 @@ type CheckoutSessionResponse struct {
 
 // stripe customer cached data
 type StripeCacheData struct {
-	customerData  StripeCustomerDataRes
-	subscriptions StripeSubscriptionCache
+	CustomerData  StripeCustomerDataRes
+	Subscriptions StripeSubscriptionCache
 }
+
 type StripeSubscriptionCache struct {
 	SubscriptionID    string             `json:"subscription_id"`
 	Status            string             `json:"status"`
@@ -244,7 +245,6 @@ type CustomerSourceList struct {
 }
 
 type SubscriptionList struct {
-	Object  string        `json:"object"`
 	Data    []interface{} `json:"data"`
 	HasMore bool          `json:"has_more"`
 	Url     string        `json:"url"`
