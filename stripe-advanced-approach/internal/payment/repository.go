@@ -12,7 +12,7 @@ type repository struct {
 	db *sqlx.DB
 }
 
-func NewRepository(db *sqlx.DB) Repository {
+func NewRepository(db *sqlx.DB) *repository {
 	return &repository{db: db}
 }
 
@@ -72,7 +72,7 @@ func (r *repository) UpdateStatus(ctx context.Context, intentID string, status s
 	return nil
 }
 
-func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error {
+func (r *repository) UpsertSubscriptionRecord(ctx context.Context, sub *Subscription) error {
 	query := `
 		INSERT INTO subscriptions (
 			user_id,
@@ -86,9 +86,19 @@ func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscrip
 			created_at,
 			updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		ON CONFLICT (stripe_subscription_id)
+		DO UPDATE SET
+			stripe_price_id = EXCLUDED.stripe_price_id,
+			status = EXCLUDED.status,
+			current_period_start = EXCLUDED.current_period_start,
+			current_period_end = EXCLUDED.current_period_end,
+			cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+			updated_at = NOW()
+		RETURNING id
 	`
 
-	_, err := r.db.ExecContext(ctx, query,
+	var id uuid.UUID
+	err := r.db.QueryRowContext(ctx, query,
 		sub.UserID,
 		sub.StripeCustomerID,
 		sub.StripeSubscriptionID,
@@ -97,9 +107,13 @@ func (r *repository) CreateSubscriptionRecord(ctx context.Context, sub *Subscrip
 		sub.CurrentPeriodStart,
 		sub.CurrentPeriodEnd,
 		sub.CancelAtPeriodEnd,
-	)
+	).Scan(&id)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to upsert subscription: %w", err)
+	}
+
+	return nil
 }
 
 func (r *repository) GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error) {
@@ -135,4 +149,8 @@ func (r *repository) UpdateSubscriptionStatus(ctx context.Context, subID string,
 	}
 
 	return nil
+}
+
+func (r *repository) BeginTx(ctx context.Context) (*sqlx.Tx, error) {
+	return r.db.BeginTxx(ctx, nil)
 }

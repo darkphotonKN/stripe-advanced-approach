@@ -10,7 +10,7 @@ type repository struct {
 	db *sqlx.DB
 }
 
-func NewRepository(db *sqlx.DB) Repository {
+func NewRepository(db *sqlx.DB) *repository {
 	return &repository{db: db}
 }
 
@@ -62,10 +62,17 @@ func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *repository) UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error {
 	query := `
-		UPDATE users 
-		SET stripe_customer_id = $1, updated_at = NOW() 
+		UPDATE users
+		SET stripe_customer_id = $1, updated_at = NOW()
 		WHERE id = $2
 	`
 	_, err := r.db.ExecContext(ctx, query, stripeCustomerID, userID)
 	return err
+}
+
+func (r *repository) GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*User, error) {
+	var user User
+	query := `SELECT * FROM users WHERE stripe_customer_id = $1`
+	err := r.db.GetContext(ctx, &user, query, stripeCustomerID)
+	return &user, err
 }

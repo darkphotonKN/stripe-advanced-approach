@@ -143,6 +143,10 @@ type CheckoutSessionResponse struct {
 type StripeCacheData struct {
 	CustomerData  StripeCustomerDataRes
 	Subscriptions StripeSubscriptionCache
+	Payments      StripePaymentsCache
+}
+
+type StripePaymentsCache struct {
 }
 
 type StripeSubscriptionCache struct {

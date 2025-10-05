@@ -6,10 +6,13 @@ import (
 	"fmt"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	redislib "github.com/redis/go-redis/v9"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/customer"
+	"github.com/stripe/stripe-go/v82/paymentintent"
 	"github.com/stripe/stripe-go/v82/subscription"
 )
 
@@ -24,13 +27,15 @@ type Repository interface {
 	Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
-	CreateSubscriptionRecord(ctx context.Context, sub *Subscription) error
+	UpsertSubscriptionRecord(ctx context.Context, sub *Subscription) error
 	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error)
 	UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error
+	BeginTx(ctx context.Context) (*sqlx.Tx, error)
 }
 
 type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
+	GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*user.User, error)
 }
 
 func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor, cacheClient interfaces.Cache) *service {
@@ -70,7 +75,6 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
-	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
 
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
@@ -95,10 +99,12 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	// expand the payment method to get card details
 	params.AddExpand("data.default_payment_method")
 
-	iter := subscription.List(params)
+	subIter := subscription.List(params)
+
+	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
 
 	// validates that customer has subscriptions
-	if !iter.Next() {
+	if !subIter.Next() {
 		// no subscription
 		noSubData := map[string]interface{}{
 			"status": "none",
@@ -115,10 +121,10 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// Get the subscription
-	sub := iter.Subscription()
+	sub := subIter.Subscription()
 
 	// Handle iteration error
-	if err := iter.Err(); err != nil {
+	if err := subIter.Err(); err != nil {
 		return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
 	}
 
@@ -130,6 +136,46 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 			Last4: sub.DefaultPaymentMethod.Card.Last4,
 		}
 	}
+
+	// payments
+	paymentParams := &stripe.PaymentIntentListParams{
+		Customer: stripe.String(customerId),
+	}
+	// Include payment method details if needed
+	paymentParams.AddExpand("data.payment_method")
+
+	paymentIter := paymentintent.List(paymentParams)
+
+	// --- DB Storage ---
+
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return fmt.Errorf("error when attempting to start transaction: %+v", err)
+	}
+
+	// NOTE: safe to run even if commit worked - in that case it will be a no-op
+	defer tx.Rollback()
+
+	// -- update application database for the respective tables --
+
+	// user
+	user, err := s.userService.GetByStripeCustomerID(ctx, customerId)
+
+	// subscription
+	s.repo.UpsertSubscriptionRecord(ctx, &Subscription{
+		UserID:               user.ID,
+		Status:               string(sub.Status),
+		StripeSubscriptionID: sub.ID,
+		StripeCustomerID:     customerId,
+	})
+
+	// payments
+
+	if !paymentIter.Next() {
+		fmt.Printf("\nCurrent payment: %+v\n\n", paymentIter.Current())
+	}
+
+	// --- Caching ---
 
 	// build the subscriptions / payment cache data
 	subCache := StripeSubscriptionCache{
@@ -187,13 +233,6 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
 	}
-
-	// update application database for the respective tables
-	s.repo.CreateSubscriptionRecord() // temp
-
-	// user
-
-	// payments
 
 	return nil
 }
@@ -319,7 +358,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 	}
 
 	// store in database a new subscription with data from successful Stripe response
-	err = s.repo.CreateSubscriptionRecord(ctx, &Subscription{
+	err = s.repo.UpsertSubscriptionRecord(ctx, &Subscription{
 		UserID:               userId,
 		StripeCustomerID:     req.CustomerID,
 		StripeSubscriptionID: res.SubscriptionID,

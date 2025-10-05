@@ -13,6 +13,7 @@ type Repository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
+	GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*User, error)
 	List(ctx context.Context) ([]User, error)
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -106,4 +107,11 @@ func (s *service) GetStripeCustomer(ctx context.Context, userID uuid.UUID) (*str
 	}
 
 	return user.StripeCustomerID, nil
+}
+
+func (s *service) GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*User, error) {
+	if stripeCustomerID == "" {
+		return nil, errors.New("stripe customer ID is required")
+	}
+	return s.repo.GetByStripeCustomerID(ctx, stripeCustomerID)
 }
