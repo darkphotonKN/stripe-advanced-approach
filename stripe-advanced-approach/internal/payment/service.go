@@ -76,6 +76,7 @@ Value: "cus_stripe123"        // Customer ID mapping
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
 
+	// --- Data Organization ---
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
 
@@ -90,7 +91,10 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
-	// get subscription data
+	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
+
+	// -- subscriptions --
+
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(customerId),
 		Status:   stripe.String("all"),
@@ -99,52 +103,44 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	// expand the payment method to get card details
 	params.AddExpand("data.default_payment_method")
 
+	// get subscription data
 	subIter := subscription.List(params)
 
-	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
+	// subscriptions slice
+	subscriptions := []*stripe.Subscription{}
 
 	// validates that customer has subscriptions
-	if !subIter.Next() {
-		// no subscription
-		noSubData := map[string]interface{}{
-			"status": "none",
+	if subIter.Next() {
+		// get the subscription
+		sub := subIter.Subscription()
+
+		// Handle iteration error
+		if err := subIter.Err(); err != nil {
+			fmt.Printf("failed to fetch subscriptions from Stripe: %+v", err)
+			return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
 		}
 
-		noSubJSON, _ := json.Marshal(noSubData)
-
-		err := s.cacheClient.Set(ctx, stripeCusKey, noSubJSON, 0)
-		if err != nil {
-			return fmt.Errorf("failed to cache no subscription data: %w", err)
-		}
-
-		return nil
+		subscriptions = append(subscriptions, sub)
 	}
 
-	// Get the subscription
-	sub := subIter.Subscription()
+	// -- payments --
+	payments := []*stripe.PaymentIntent{}
 
-	// Handle iteration error
-	if err := subIter.Err(); err != nil {
-		return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
-	}
-
-	// extract payment method info safely
-	var pmInfo *PaymentMethodInfo
-	if sub.DefaultPaymentMethod != nil && sub.DefaultPaymentMethod.Card != nil {
-		pmInfo = &PaymentMethodInfo{
-			Brand: string(sub.DefaultPaymentMethod.Card.Brand),
-			Last4: sub.DefaultPaymentMethod.Card.Last4,
-		}
-	}
-
-	// payments
 	paymentParams := &stripe.PaymentIntentListParams{
 		Customer: stripe.String(customerId),
 	}
-	// Include payment method details if needed
+
+	// include payment method details
 	paymentParams.AddExpand("data.payment_method")
 
 	paymentIter := paymentintent.List(paymentParams)
+
+	if paymentIter.Next() {
+		pi := paymentIter.PaymentIntent()
+		fmt.Printf("\npayment intent: %+v\n\n", pi)
+
+		payments = append(payments, pi)
+	}
 
 	// --- DB Storage ---
 
@@ -156,34 +152,66 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	// NOTE: safe to run even if commit was successful - in that case it will be a no-op
 	defer tx.Rollback()
 
-	// -- update application database for the respective tables --
+	// update application database for the respective tables
 
-	// user
+	// -- user
 	user, err := s.userService.GetByStripeCustomerID(ctx, customerId)
 
-	// subscription
-	s.repo.UpsertSubscriptionRecord(ctx, &Subscription{
-		UserID:               user.ID,
-		Status:               string(sub.Status),
-		StripeSubscriptionID: sub.ID,
-		StripeCustomerID:     customerId,
-	})
+	// -- subscription --
 
-	// payments
+	for _, sub := range subscriptions {
+		err := s.repo.UpsertSubscriptionRecord(ctx, &Subscription{
+			UserID:               user.ID,
+			Status:               string(sub.Status),
+			StripeSubscriptionID: sub.ID,
+			StripeCustomerID:     customerId,
+		})
 
-	if !paymentIter.Next() {
-		fmt.Printf("\nCurrent payment: %+v\n\n", paymentIter.Current())
+		if err != nil {
+			return fmt.Errorf("\nError when attempting to batch upsert subscriptions during sync: %+v\n\n", err)
+		}
+	}
+
+	// -- payments --
+	paymentCache := make([]*StripePaymentsCache, len(payments))
+
+	for index, payment := range payments {
+		paymentCache[index] = &StripePaymentsCache{
+			ID:     payment.ID,
+			Status: string(payment.Status),
+		}
 	}
 
 	// --- Caching ---
 
+	subCache := make([]*StripeSubscriptionCache, len(subscriptions))
+
 	// build the subscriptions / payment cache data
-	subCache := StripeSubscriptionCache{
-		SubscriptionID:    sub.ID,
-		Status:            string(sub.Status),
-		PriceID:           sub.Items.Data[0].Price.ID,
-		CancelAtPeriodEnd: sub.CancelAtPeriodEnd,
-		PaymentMethod:     pmInfo,
+
+	for index, sub := range subscriptions {
+		// extract payment method info safely
+		var pmInfo *PaymentMethodInfo
+
+		if len(subscriptions) > 0 {
+			sub := subscriptions[0]
+
+			if sub.DefaultPaymentMethod != nil && sub.DefaultPaymentMethod.Card != nil {
+				pmInfo = &PaymentMethodInfo{
+					Brand: string(sub.DefaultPaymentMethod.Card.Brand),
+					Last4: sub.DefaultPaymentMethod.Card.Last4,
+				}
+			}
+
+		}
+
+		// add to cache slice
+		subCache[index] = &StripeSubscriptionCache{
+			SubscriptionID:    sub.ID,
+			Status:            string(sub.Status),
+			PriceID:           sub.Items.Data[0].Price.ID,
+			CancelAtPeriodEnd: sub.CancelAtPeriodEnd,
+			PaymentMethod:     pmInfo,
+		}
 	}
 
 	// customer data
@@ -219,6 +247,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	cacheState := StripeCacheData{
 		CustomerData:  stripeCusData,
 		Subscriptions: subCache,
+		Payments:      paymentCache,
 	}
 
 	cacheStateJSON, err := json.Marshal(cacheState)

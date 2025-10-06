@@ -141,12 +141,14 @@ type CheckoutSessionResponse struct {
 
 // stripe customer cached data
 type StripeCacheData struct {
-	CustomerData  StripeCustomerDataRes
-	Subscriptions StripeSubscriptionCache
-	Payments      StripePaymentsCache
+	CustomerData  StripeCustomerDataRes      `json:"customer_data"`
+	Subscriptions []*StripeSubscriptionCache `json:"subscriptions"`
+	Payments      []*StripePaymentsCache     `json:"payments"`
 }
 
 type StripePaymentsCache struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
 }
 
 type StripeSubscriptionCache struct {
