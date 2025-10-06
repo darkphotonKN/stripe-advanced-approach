@@ -77,6 +77,7 @@ Value: "cus_stripe123"        // Customer ID mapping
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
 
 	// --- Data Organization ---
+
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
 
@@ -110,7 +111,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	subscriptions := []*stripe.Subscription{}
 
 	// validates that customer has subscriptions
-	if subIter.Next() {
+	for subIter.Next() {
 		// get the subscription
 		sub := subIter.Subscription()
 
@@ -135,7 +136,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	paymentIter := paymentintent.List(paymentParams)
 
-	if paymentIter.Next() {
+	for paymentIter.Next() {
 		pi := paymentIter.PaymentIntent()
 		fmt.Printf("\npayment intent: %+v\n\n", pi)
 
