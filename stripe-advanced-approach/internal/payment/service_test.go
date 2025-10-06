@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"github.com/stripe/stripe-go/v82"
 )
 
@@ -19,6 +21,7 @@ type PaymentTestSuite struct {
 	repo            Repository
 	userService     PaymentUserService
 	stripeProcessor PaymentProcessor
+	db              *sqlx.DB
 	cleanupFunc     func()
 }
 
@@ -34,6 +37,21 @@ func setupTestSuite(t *testing.T) *PaymentTestSuite {
 		t.Skip("STRIPE_SECRET_KEY not set, skipping test")
 	}
 
+	// Setup database connection
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASSWORD")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	db, err := sqlx.Connect("postgres", dsn)
+	if err != nil {
+		t.Fatal("Failed to connect to database:", err)
+	}
+
 	redisClient := redis.NewClient()
 
 	ctx := context.Background()
@@ -41,14 +59,17 @@ func setupTestSuite(t *testing.T) *PaymentTestSuite {
 		t.Fatal("Failed to connect to Redis:", err)
 	}
 
-	emptyTestRepo := NewRepository(&sqlx.DB{})
-	emptyTestUserRepo := user.NewRepository(&sqlx.DB{})
-	emptyTestUserServ := user.NewService(emptyTestUserRepo)
-	emptyTestStripeProcessor := NewStripeProcessor()
+	testRepo := NewRepository(db)
+	testUserRepo := user.NewRepository(db)
+	testUserServ := user.NewService(testUserRepo)
+	testStripeProcessor := NewStripeProcessor()
 
-	service := NewService(emptyTestRepo, emptyTestUserServ, emptyTestStripeProcessor, redisClient)
+	service := NewService(testRepo, testUserServ, testStripeProcessor, redisClient)
 
 	cleanup := func() {
+		if err := db.Close(); err != nil {
+			t.Logf("Failed to close database connection: %v", err)
+		}
 		if err := redisClient.Close(); err != nil {
 			t.Logf("Failed to close Redis connection: %v", err)
 		}
@@ -58,9 +79,10 @@ func setupTestSuite(t *testing.T) *PaymentTestSuite {
 		ctx:             ctx,
 		service:         service,
 		redisClient:     redisClient,
-		repo:            emptyTestRepo,
-		userService:     emptyTestUserServ,
-		stripeProcessor: emptyTestStripeProcessor,
+		repo:            testRepo,
+		userService:     testUserServ,
+		stripeProcessor: testStripeProcessor,
+		db:              db,
 		cleanupFunc:     cleanup,
 	}
 }
@@ -90,4 +112,3 @@ func TestGetStripeData(t *testing.T) {
 		t.Logf("Failed to get cached data: %v", err)
 	}
 }
-

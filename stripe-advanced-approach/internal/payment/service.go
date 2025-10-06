@@ -153,7 +153,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		return fmt.Errorf("error when attempting to start transaction: %+v", err)
 	}
 
-	// NOTE: safe to run even if commit worked - in that case it will be a no-op
+	// NOTE: safe to run even if commit was successful - in that case it will be a no-op
 	defer tx.Rollback()
 
 	// -- update application database for the respective tables --
