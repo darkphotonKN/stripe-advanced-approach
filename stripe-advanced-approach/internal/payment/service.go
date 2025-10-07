@@ -27,7 +27,7 @@ type Repository interface {
 	Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
-	UpsertPayment(ctx context.Context, userID uuid.UUID, paymentIntentID string, payment *Payment) error
+	UpsertPayment(ctx context.Context, paymentIntentID string, payment *Payment) error
 	UpsertSubscriptionRecord(ctx context.Context, sub *Subscription) error
 	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error)
 	UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error
@@ -176,8 +176,22 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	// -- payments --
 
+	// get userId from cache / db depending on availability
+	userId, err := s.GetCachedUserIdByCustomerId(ctx, customerId)
+
 	for _, payment := range payments {
-		s.repo.UpsertPayment(ctx, customerId)
+		err := s.repo.UpsertPayment(ctx, payment.ID, &Payment{
+			UserID:           userId,
+			StripeCustomerID: customerId,
+			StripeIntentID:   payment.ID,
+			Amount:           payment.Amount,
+			Status:           string(payment.Status),
+			Currency:         string(payment.Currency),
+		})
+
+		if err != nil {
+			return err
+		}
 	}
 
 	// --- Caching ---
@@ -412,7 +426,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 	return res, nil
 }
 
-func (s *service) GetUserIdByStripeCustomerIdMapping(ctx context.Context, customerID string) (uuid.UUID, error) {
+func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID string) (uuid.UUID, error) {
 	key := fmt.Sprintf("stripe:customer:%s:userid", customerID)
 	userIdStr, err := s.cacheClient.Get(ctx, key)
 
@@ -426,7 +440,7 @@ func (s *service) GetUserIdByStripeCustomerIdMapping(ctx context.Context, custom
 		}
 
 		// store in cache
-		s.cacheClient.Set(ctx, key, user.ID, 0)
+		s.cacheClient.Set(ctx, key, user.ID.String(), 0)
 
 		// return the id
 		return user.ID, nil

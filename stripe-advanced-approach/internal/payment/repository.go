@@ -72,7 +72,7 @@ func (r *repository) UpdateStatus(ctx context.Context, intentID string, status s
 	return nil
 }
 
-func (r *repository) UpsertPayment(ctx context.Context, userID uuid.UUID, paymentIntentID string, payment *Payment) error {
+func (r *repository) UpsertPayment(ctx context.Context, paymentIntentID string, payment *Payment) error {
 	query := `
         INSERT INTO payments (
             user_id,
@@ -95,7 +95,7 @@ func (r *repository) UpsertPayment(ctx context.Context, userID uuid.UUID, paymen
 
 	var id uuid.UUID
 	err := r.db.QueryRowContext(ctx, query,
-		userID,
+		payment.UserID,
 		payment.StripeCustomerID,
 		paymentIntentID,
 		payment.Amount,
