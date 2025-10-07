@@ -72,6 +72,44 @@ func (r *repository) UpdateStatus(ctx context.Context, intentID string, status s
 	return nil
 }
 
+func (r *repository) UpsertPayment(ctx context.Context, userID uuid.UUID, paymentIntentID string, payment *Payment) error {
+	query := `
+        INSERT INTO payments (
+            user_id,
+            stripe_customer_id,
+            stripe_payment_intent_id,
+            amount,
+            status,
+            currency,
+            created_at,
+            updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        ON CONFLICT (stripe_payment_intent_id) 
+        DO UPDATE SET
+            amount = EXCLUDED.amount,
+            status = EXCLUDED.status,
+            currency = EXCLUDED.currency,
+            updated_at = NOW()
+        RETURNING id
+    `
+
+	var id uuid.UUID
+	err := r.db.QueryRowContext(ctx, query,
+		userID,
+		payment.StripeCustomerID,
+		paymentIntentID,
+		payment.Amount,
+		payment.Status,
+		payment.Currency,
+	).Scan(&id)
+
+	if err != nil {
+		return fmt.Errorf("failed to upsert payment: %w", err)
+	}
+
+	return nil
+}
+
 func (r *repository) UpsertSubscriptionRecord(ctx context.Context, sub *Subscription) error {
 	query := `
 		INSERT INTO subscriptions (

@@ -27,6 +27,7 @@ type Repository interface {
 	Create(ctx context.Context, userId uuid.UUID, paymentIntent *PaymentIntentRequest) error
 	GetPaymentByIntentID(ctx context.Context, intentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, intentID string, status string) error
+	UpsertPayment(ctx context.Context, userID uuid.UUID, paymentIntentID string, payment *Payment) error
 	UpsertSubscriptionRecord(ctx context.Context, sub *Subscription) error
 	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*Subscription, error)
 	UpdateSubscriptionStatus(ctx context.Context, subID string, status string) error
@@ -174,20 +175,16 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// -- payments --
-	paymentCache := make([]*StripePaymentsCache, len(payments))
 
-	for index, payment := range payments {
-		paymentCache[index] = &StripePaymentsCache{
-			ID:     payment.ID,
-			Status: string(payment.Status),
-		}
+	for _, payment := range payments {
+		s.repo.UpsertPayment(ctx, customerId)
 	}
 
 	// --- Caching ---
 
 	subCache := make([]*StripeSubscriptionCache, len(subscriptions))
 
-	// build the subscriptions / payment cache data
+	// -- subscriptions --
 
 	for index, sub := range subscriptions {
 		// extract payment method info safely
@@ -215,7 +212,19 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		}
 	}
 
-	// customer data
+	// -- payments --
+
+	paymentCache := make([]*StripePaymentsCache, len(payments))
+
+	for index, payment := range payments {
+		paymentCache[index] = &StripePaymentsCache{
+			ID:     payment.ID,
+			Status: string(payment.Status),
+		}
+	}
+
+	// -- user --
+
 	stripeCusData := StripeCustomerDataRes{
 		ID:                   customer.ID,
 		Address:              convertAddress(customer.Address),
@@ -401,6 +410,42 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 	}
 
 	return res, nil
+}
+
+func (s *service) GetUserIdByStripeCustomerIdMapping(ctx context.Context, customerID string) (uuid.UUID, error) {
+	key := fmt.Sprintf("stripe:customer:%s:userid", customerID)
+	userIdStr, err := s.cacheClient.Get(ctx, key)
+
+	// key doesn't exist, acquire userId to fill in cache
+	if err == redislib.Nil {
+		user, err := s.userService.GetByStripeCustomerID(ctx, customerID)
+
+		if err != nil {
+			fmt.Printf("err when attempting to get user with customerId %s: %v\n", customerID, err)
+			return uuid.Nil, err
+		}
+
+		// store in cache
+		s.cacheClient.Set(ctx, key, user.ID, 0)
+
+		// return the id
+		return user.ID, nil
+	}
+
+	// unexpected errors
+	if err != nil {
+		fmt.Printf("err when attempting to get userId from cache with customerId %s: %v\n", customerID, err)
+		return uuid.Nil, err
+	}
+
+	// convert back to uuid
+	userId, err := uuid.Parse(userIdStr)
+
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return userId, err
 }
 
 // --- Full Flow Methods ---
