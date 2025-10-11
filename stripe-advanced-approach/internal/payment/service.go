@@ -468,7 +468,6 @@ func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID st
 * Recieves a stripe event and parses the event
 **/
 func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error {
-
 	// store allowed / expected webhook events
 	expectedEvents := map[stripe.EventType]bool{
 		stripe.EventTypePaymentIntentSucceeded:      true,
@@ -487,12 +486,15 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 
 	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
-	if expectedEvents[event.Type] {
-
-	} else {
-		fmt.Printf("Unhandled event type: %s\n", event.Type)
-		return nil
+	if !expectedEvents[event.Type] {
+		// not-allowed events
+		return fmt.Errorf("The event type that was resulted from the action was not allowed.")
 	}
+
+	eventDataObj := event.Data.Object
+	fmt.Printf("\ndata from event.Data.Object: %+v\n\n", eventDataObj)
+
+	// s.SyncStripeDataToStorage(ctx, customerId)
 
 	switch event.Type {
 	case "payment_intent.succeeded":
