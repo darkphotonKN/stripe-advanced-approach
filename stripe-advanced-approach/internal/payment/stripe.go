@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -367,4 +368,54 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 		ClientSecret:   clientSecret,
 		Status:         string(sub.Status),
 	}, nil
+}
+
+/**
+* Handles all webhook events specifically for stripe that this platform allows.
+**/
+
+func (s *StripeProcessor) IsWebhookEventSupported(ctx context.Context, event *stripe.Event) bool {
+	// store allowed / expected webhook events
+	expectedEvents := map[stripe.EventType]bool{
+		stripe.EventTypePaymentIntentSucceeded:      true,
+		stripe.EventTypePaymentIntentPaymentFailed:  true,
+		stripe.EventTypePaymentIntentCanceled:       true,
+		stripe.EventTypeCustomerSubscriptionCreated: true,
+	}
+
+	fmt.Printf("Processing webhook event type: %s\n", event.Type)
+
+	fmt.Printf("Processing webhook event type: %s\n", event.Type)
+
+	if !expectedEvents[event.Type] {
+		// not-allowed events
+		fmt.Printf("The event type that was resulted from the action was not allowed.")
+		return false
+	}
+
+	return true
+}
+
+/**
+* Extract stripe-specific customer id from event object.
+**/
+func (s *StripeProcessor) ExtractCustomerIdFromWebhook(event interface{}) (string, error) {
+
+	// Type assert to Stripe event
+	stripeEvent, ok := event.(*stripe.Event)
+	if !ok {
+		return "", fmt.Errorf("invalid event type: expected *stripe.Event")
+	}
+
+	var eventData map[string]interface{}
+	err := json.Unmarshal(stripeEvent.Data.Raw, eventData)
+
+	if err != nil {
+		return "", err
+	}
+
+	if customer, ok := eventData["customer"].(string); ok && customer != "" {
+		fmt.Printf("\ncustomer from event: %s\n\n", customer)
+	}
+	return "", nil
 }

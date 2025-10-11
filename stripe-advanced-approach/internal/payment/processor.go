@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/stripe/stripe-go/v82"
 )
 
 type PaymentProcessor interface {
@@ -15,4 +16,6 @@ type PaymentProcessor interface {
 	CreatePaymentIntent(ctx context.Context, amount int64, customerId string) (*CreatePaymentIntentResponse, error)
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*StripePurchaseResponse, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
+	IsWebhookEventSupported(ctx context.Context, event *stripe.Event) bool
+	ExtractCustomerIdFromWebhook(event interface{}) (string, error)
 }
