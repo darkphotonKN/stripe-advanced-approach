@@ -15,12 +15,6 @@ import (
 	"github.com/stripe/stripe-go/v82/subscription"
 )
 
-/* PCI Compliance
-
-CREDIT CARD DETAILS DATABASE X
-CREDIT CARD DETAILS API REQUEST TO BACKEND X
-*/
-
 type StripeProcessor struct{}
 
 func NewStripeProcessor() PaymentProcessor {
@@ -371,6 +365,28 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 }
 
 /**
+* Checks webhook event, using it as an indicator that something has been triggered.
+* if you are on my team and use this as guidance please be wary that the actual sync method comes after this processor
+**/
+
+func (s *StripeProcessor) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) (customerId string, error error) {
+	isEventSupported := s.IsWebhookEventSupported(ctx, event)
+
+	if !isEventSupported {
+		return "", fmt.Errorf("The event type that was resulted from the action was not allowed.")
+	}
+
+	customerId, err := s.ExtractCustomerIdFromWebhook(event)
+	fmt.Printf("customerId from webhook event: %s\n", customerId)
+
+	if err != nil {
+		return "", err
+	}
+
+	return customerId, nil
+}
+
+/**
 * Handles all webhook events specifically for stripe that this platform allows.
 **/
 
@@ -382,8 +398,6 @@ func (s *StripeProcessor) IsWebhookEventSupported(ctx context.Context, event *st
 		stripe.EventTypePaymentIntentCanceled:       true,
 		stripe.EventTypeCustomerSubscriptionCreated: true,
 	}
-
-	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
 	fmt.Printf("Processing webhook event type: %s\n", event.Type)
 
@@ -400,10 +414,10 @@ func (s *StripeProcessor) IsWebhookEventSupported(ctx context.Context, event *st
 * Extract stripe-specific customer id from event object.
 **/
 func (s *StripeProcessor) ExtractCustomerIdFromWebhook(event interface{}) (string, error) {
-
 	// Type assert to Stripe event
 	stripeEvent, ok := event.(*stripe.Event)
 	if !ok {
+		fmt.Printf("invalid event type: expected *stripe.Event")
 		return "", fmt.Errorf("invalid event type: expected *stripe.Event")
 	}
 
@@ -411,11 +425,14 @@ func (s *StripeProcessor) ExtractCustomerIdFromWebhook(event interface{}) (strin
 	err := json.Unmarshal(stripeEvent.Data.Raw, eventData)
 
 	if err != nil {
+		fmt.Printf("\nCould not unmarshal event data into eventData, err: %+v\n\n", err)
+
 		return "", err
 	}
 
 	if customer, ok := eventData["customer"].(string); ok && customer != "" {
 		fmt.Printf("\ncustomer from event: %s\n\n", customer)
 	}
+
 	return "", nil
 }

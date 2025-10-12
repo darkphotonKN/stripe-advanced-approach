@@ -17,5 +17,5 @@ type PaymentProcessor interface {
 	PurchaseProduct(ctx context.Context, req *PurchaseProductRequest) (*StripePurchaseResponse, error)
 	SubscribeToProduct(ctx context.Context, req *SubscribeRequest) (*SubscribeResponse, error)
 	IsWebhookEventSupported(ctx context.Context, event *stripe.Event) bool
-	ExtractCustomerIdFromWebhook(event interface{}) (string, error)
+	ProcessWebhookEvent(ctx context.Context, event *stripe.Event) (customerId string, error error)
 }

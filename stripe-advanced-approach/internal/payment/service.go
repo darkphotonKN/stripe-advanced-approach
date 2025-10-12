@@ -465,50 +465,37 @@ func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID st
 // --- Full Flow Methods ---
 
 /**
-* Recieves a stripe event and parses the event
+* Recieves a payment processor event and parses the event
 **/
 func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error {
-	isEventSupported := s.paymentProcessor.IsWebhookEventSupported(ctx, event)
-
-	if !isEventSupported {
-		return fmt.Errorf("The event type that was resulted from the action was not allowed.")
-	}
-
-	parsedPaymentIntent, err := s.parsePaymentProcessorEvent(event)
+	customerId, err := s.paymentProcessor.ProcessWebhookEvent(ctx, event)
 
 	if err != nil {
+		fmt.Printf("\npaymentProcessor method ProcessWebhookEvent could not process incoming event of %s, err :+v\n\n", event, err)
 		return err
 	}
 
-	customerId := s.paymentProcessor.IsWebhookEventSupported(ctx, event)
-	fmt.Println(customerId)
+	fmt.Printf("Service layer - customerId: %s\n", customerId)
 
 	// s.SyncStripeDataToStorage(ctx, customerId)
 
-	switch event.Type {
-	case "payment_intent.succeeded":
-		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "success")
-	case "payment_intent.payment_failed":
-		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "failed")
-	case "payment_intent.canceled":
-		return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "canceled")
+	// switch event.Type {
+	// case "payment_intent.succeeded":
+	// 	return nil
+	// case "payment_intent.payment_failed":
+	// 	return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "failed")
+	// case "payment_intent.canceled":
+	// 	return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "canceled")
+	//
+	// // TODO: add other subscription statuses
+	// case "customer.subscription.created":
+	// 	return s.repo.UpdateSubscriptionStatus(ctx, parsedPaymentIntent.ID, "active")
+	// default:
+	// 	fmt.Printf("Unhandled event type: %s\n", event.Type)
+	// 	return nil
+	// }
 
-	// TODO: add other subscription statuses
-	case "customer.subscription.created":
-		return s.repo.UpdateSubscriptionStatus(ctx, parsedPaymentIntent.ID, "active")
-	default:
-		fmt.Printf("Unhandled event type: %s\n", event.Type)
-		return nil
-	}
-}
-
-func (s *service) parsePaymentProcessorEvent(event *stripe.Event) (*stripe.PaymentIntent, error) {
-	var paymentIntent stripe.PaymentIntent
-	if err := json.Unmarshal(event.Data.Raw, &paymentIntent); err != nil {
-		return nil, fmt.Errorf("error parsing payment intent: %w", err)
-	}
-
-	return &paymentIntent, nil
+	return nil
 }
 
 // Helper functions to convert Stripe types to our cache types
