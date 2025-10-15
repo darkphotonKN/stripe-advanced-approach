@@ -76,7 +76,6 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
-
 	// --- Data Organization ---
 
 	// get latest up-to-date data from stripe
@@ -478,22 +477,6 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 	fmt.Printf("Service layer - customerId: %s\n", customerId)
 
 	// s.SyncStripeDataToStorage(ctx, customerId)
-
-	// switch event.Type {
-	// case "payment_intent.succeeded":
-	// 	return nil
-	// case "payment_intent.payment_failed":
-	// 	return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "failed")
-	// case "payment_intent.canceled":
-	// 	return s.repo.UpdateStatus(ctx, parsedPaymentIntent.ID, "canceled")
-	//
-	// // TODO: add other subscription statuses
-	// case "customer.subscription.created":
-	// 	return s.repo.UpdateSubscriptionStatus(ctx, parsedPaymentIntent.ID, "active")
-	// default:
-	// 	fmt.Printf("Unhandled event type: %s\n", event.Type)
-	// 	return nil
-	// }
 
 	return nil
 }

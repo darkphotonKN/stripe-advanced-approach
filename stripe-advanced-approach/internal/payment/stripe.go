@@ -366,7 +366,7 @@ func (s *StripeProcessor) SubscribeToProduct(ctx context.Context, req *Subscribe
 
 /**
 * Checks webhook event, using it as an indicator that something has been triggered.
-* if you are on my team and use this as guidance please be wary that the actual sync method comes after this processor
+* if you are on my team and I provide you this POC as guidance please be wary that the actual "sync" method comes after this processor
 **/
 
 func (s *StripeProcessor) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) (customerId string, error error) {
