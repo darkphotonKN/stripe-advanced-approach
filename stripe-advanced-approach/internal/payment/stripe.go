@@ -426,13 +426,13 @@ func (s *StripeProcessor) ExtractCustomerIdFromWebhook(event interface{}) (strin
 
 	if err != nil {
 		fmt.Printf("\nCould not unmarshal event data into eventData, err: %+v\n\n", err)
-
 		return "", err
 	}
 
 	if customer, ok := eventData["customer"].(string); ok && customer != "" {
 		fmt.Printf("\ncustomer from event: %s\n\n", customer)
+		return customer, nil
 	}
 
-	return "", nil
+	return "", fmt.Errorf("no customer ID found in stripe event type: %s", stripeEvent.Type)
 }
