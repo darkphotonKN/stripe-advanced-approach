@@ -476,7 +476,7 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 
 	fmt.Printf("Service layer - customerId: %s\n", customerId)
 
-	// s.SyncStripeDataToStorage(ctx, customerId)
+	s.SyncStripeDataToStorage(ctx, customerId)
 
 	return nil
 }

@@ -422,7 +422,7 @@ func (s *StripeProcessor) ExtractCustomerIdFromWebhook(event interface{}) (strin
 	}
 
 	var eventData map[string]interface{}
-	err := json.Unmarshal(stripeEvent.Data.Raw, eventData)
+	err := json.Unmarshal(stripeEvent.Data.Raw, &eventData)
 
 	if err != nil {
 		fmt.Printf("\nCould not unmarshal event data into eventData, err: %+v\n\n", err)
