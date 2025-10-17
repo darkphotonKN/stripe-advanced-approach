@@ -98,6 +98,16 @@ export const subscriptionAPI = {
     });
     return response.data;
   },
+  subscribe: async (priceId: string) => {
+    const response = await api.post("/subscription/subscribe", {
+      price_id: priceId,
+    });
+    return response.data;
+  },
+  getStatus: async () => {
+    const response = await api.get("/subscription/status");
+    return response.data;
+  },
 };
 
 export const authAPI = {
