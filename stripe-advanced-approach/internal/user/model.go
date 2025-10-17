@@ -12,6 +12,7 @@ type User struct {
 	Password         string    `db:"password" json:"password,omitempty" validate:"required,min=6"`
 	Name             string    `db:"name" json:"name" validate:"required,min=1,max=255"`
 	StripeCustomerID *string   `db:"stripe_customer_id" json:"stripe_customer_id"`
+	Subscribed       bool      `db:"subscribed" json:"subscribed"`
 	CreatedAt        time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt        time.Time `db:"updated_at" json:"updated_at"`
 }
@@ -20,4 +21,3 @@ func (u *User) Validate() error {
 	validate := validator.New()
 	return validate.Struct(u)
 }
-

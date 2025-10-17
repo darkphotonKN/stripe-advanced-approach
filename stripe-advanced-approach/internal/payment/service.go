@@ -290,9 +290,33 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	return nil
 }
 
+// adds/sets the mapping between userId and payment processor customerId in cache
+func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
+	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
+	err := s.cacheClient.Set(ctx, key, customerId, 0)
+
+	if err != nil {
+		return fmt.Errorf("failed to cache userId to customerId mapping: %w", err)
+	}
+
+	return nil
+}
+
 // mapping between userId and payment processor customerId
-func (s *service) GetCusIdFromUserId(ctx context.Context, userId uuid.UUID) (string, error) {
-	return "", nil
+func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID) (string, error) {
+	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
+	customerId, err := s.cacheClient.Get(ctx, key)
+
+	// doesn't exist in cache, error, cache is supposed to have a mapping from this point
+	if err != redislib.Nil {
+		return "", fmt.Errorf("No customerId exists for this userId %s", userId)
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("unexpected error occured when attempting to find map of customer Id from userId: %s", userId)
+	}
+
+	return customerId, nil
 }
 
 /**
@@ -662,6 +686,14 @@ func convertTaxIds(t *stripe.TaxIDList) *CustomerTaxIdList {
 * plan of this site
 **/
 func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error) {
+	// get customerId from cache
+	cusId, err := s.GetCachedCusIdFromUserId(ctx, userId)
 
+	if err != nil {
+		return nil, err
+	}
+
+	// get subscription status
+	stripeCacheData, err := s.GetStripeData(ctx, cusId)
 	return nil, nil
 }

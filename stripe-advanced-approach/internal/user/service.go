@@ -21,7 +21,12 @@ type Repository interface {
 }
 
 type service struct {
-	repo Repository
+	repo           Repository
+	paymentService UserPaymentService
+}
+
+type UserPaymentService interface {
+	AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error
 }
 
 func NewService(repo Repository) *service {
@@ -87,13 +92,31 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 	}
 
 	user.Password = ""
+
+	// attempt to update cache customerId with userId
+	s.paymentService.AddCacheUserIdToCusId(ctx, user.ID, *user.StripeCustomerID)
+
 	return user, nil
 }
 
 func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
 
-	return s.repo.UpdateStripeCustomer(ctx, userId, customerId)
+	// not ok to fail, will sync up later with eventual consistency
+	// don't update repo until cache is updated successfully to prevent unecessary rollbacks
+	// updates cache with customerId to userId mapping
+	err := s.paymentService.AddCacheUserIdToCusId(ctx, userId, customerId)
 
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UpdateStripeCustomer(ctx, userId, customerId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *service) GetStripeCustomer(ctx context.Context, userID uuid.UUID) (*string, error) {
