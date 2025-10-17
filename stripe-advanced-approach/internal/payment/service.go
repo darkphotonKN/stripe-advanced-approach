@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/model"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -287,6 +288,11 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	return nil
+}
+
+// mapping between userId and payment processor customerId
+func (s *service) GetCusIdFromUserId(ctx context.Context, userId uuid.UUID) (string, error) {
+	return "", nil
 }
 
 /**
@@ -649,4 +655,13 @@ func convertTaxIds(t *stripe.TaxIDList) *CustomerTaxIdList {
 		HasMore: t.HasMore,
 		Url:     t.URL,
 	}
+}
+
+/**
+* for utilizing cache for checking the user's subscription status to the pro
+* plan of this site
+**/
+func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error) {
+
+	return nil, nil
 }

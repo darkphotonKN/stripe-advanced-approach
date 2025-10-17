@@ -3,40 +3,37 @@ package subscription
 import (
 	"context"
 
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/model"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/google/uuid"
 )
 
 type service struct {
-	repo Repository
+	userService    SubscriptionUserService
+	paymentService SubscriptionPaymentService
 }
 
-type Repository interface {
-	// TODO: Add repository methods as needed
-	// Example: GetSubscriptionByUserID(ctx context.Context, userId uuid.UUID) (*Subscription, error)
+type SubscriptionUserService interface {
+	Update(ctx context.Context, id uuid.UUID, user *user.User) error
 }
 
-func NewService(repo Repository) Service {
+type SubscriptionPaymentService interface {
+	GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error)
+}
+
+func NewService(userService SubscriptionUserService, paymentService SubscriptionPaymentService) Service {
 	return &service{
-		repo: repo,
+		userService:    userService,
+		paymentService: paymentService,
 	}
 }
 
 // SubscribeToProduct creates a subscription for a user
-// TODO: Implement this method
 func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req *SubscribeRequest) (*SubscribeResponse, error) {
-	// TODO: Implement subscription logic
-	// 1. Get user's Stripe customer ID
-	// 2. Create Stripe subscription or checkout session
-	// 3. Return client secret or checkout URL
 	return nil, nil
 }
 
 // GetSubscriptionStatus retrieves the user's subscription status
-// TODO: Implement this method
 func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
-	// TODO: Implement status check logic
-	// 1. Get user's Stripe customer ID
-	// 2. Fetch subscription from Stripe
-	// 3. Map to minimal frontend response
 	return nil, nil
 }

@@ -75,8 +75,7 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	protected.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
 
 	// subscription setup
-	subscriptionRepository := subscription.NewRepository(db)
-	subscriptionService := subscription.NewService(subscriptionRepository)
+	subscriptionService := subscription.NewService(userService, paymentService)
 	subscriptionHandler := subscription.NewHandler(subscriptionService)
 
 	protected.POST("/subscription/subscribe", subscriptionHandler.Subscribe)

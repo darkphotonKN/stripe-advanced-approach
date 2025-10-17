@@ -7,6 +7,7 @@ import CustomerCreation from "@/components/CustomerCreation";
 import CardSaving from "@/components/CardSaving";
 import OneTimePayment from "@/components/OneTimePayment";
 import BuyProduct from "@/components/BuyProduct";
+import SubscribeToSite from "@/components/SubscribeToSite";
 
 export default function Home() {
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export default function Home() {
             </h1>
             <p className="text-gray-600 mb-4">
               Following the exact POC flow: Products → Customer → Save Card →
-              Payment → Buy Product
+              Payment → Buy Product → Subscribe
             </p>
             <button
               onClick={resetAll}
@@ -86,6 +87,10 @@ export default function Home() {
           <BuyProduct
             customerId={stripeCustomerId}
             enabled={true}
+          />
+
+          <SubscribeToSite
+            enabled={customerCreated}
           />
         </div>
 
@@ -147,6 +152,17 @@ export default function Home() {
                 <li>• GET /api/products</li>
                 <li>• POST /api/purchase-product</li>
                 <li>• Returns client_secret for payment</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-blue-800 mb-2">
+                Step 6: Subscribe to Site
+              </h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>• POST /api/subscription/subscribe</li>
+                <li>• GET /api/subscription/status</li>
+                <li>• Returns subscription status & access</li>
               </ul>
             </div>
 
