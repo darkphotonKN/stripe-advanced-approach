@@ -9,6 +9,7 @@ import (
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/payment"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -16,13 +17,13 @@ import (
 )
 
 type SubscriptionTestSuite struct {
-	ctx             context.Context
-	service         Service
-	redisClient     *redis.Client
-	userService     user.Service
-	paymentService  *payment.Service
-	db              *sqlx.DB
-	cleanupFunc     func()
+	ctx            context.Context
+	service        Service
+	redisClient    *redis.Client
+	userService    user.Service
+	paymentService payment.Service
+	db             *sqlx.DB
+	cleanupFunc    func()
 }
 
 func setupTestSuite(t *testing.T) *SubscriptionTestSuite {
@@ -103,19 +104,11 @@ func TestGetSubscriptionStatus(t *testing.T) {
 	suite := setupTestSuite(t)
 	defer suite.Cleanup()
 
-	// Fixed customer ID for testing
-	customerId := "cus_T9oGLz1d5tJFhY"
-
-	// Get user by stripe customer ID
-	user, err := suite.userService.GetByStripeCustomerID(suite.ctx, customerId)
-	if err != nil {
-		t.Fatalf("Failed to get user by stripe customer ID: %v", err)
-	}
-
-	t.Logf("Found user ID: %s for customer ID: %s", user.ID, customerId)
+	// userId for testing
+	userId := uuid.MustParse("158c0a1e-583e-4bb6-9378-d980a17c5809")
 
 	// Call GetSubscriptionStatus
-	status, err := suite.service.GetSubscriptionStatus(suite.ctx, user.ID)
+	status, err := suite.service.GetSubscriptionStatus(suite.ctx, userId)
 	if err != nil {
 		t.Logf("Error when getting subscription status: %v", err)
 	}
