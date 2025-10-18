@@ -290,7 +290,9 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	return nil
 }
 
-// adds/sets the mapping between userId and payment processor customerId in cache
+/**
+* adds/sets the mapping between userId and payment processor customerId in cache
+**/
 func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
 	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
 	err := s.cacheClient.Set(ctx, key, customerId, 0)
@@ -302,13 +304,15 @@ func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, c
 	return nil
 }
 
-// mapping between userId and payment processor customerId
+/**
+* gets cached customerId with the userId
+**/
 func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID) (string, error) {
 	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
 	customerId, err := s.cacheClient.Get(ctx, key)
 
 	// doesn't exist in cache, error, cache is supposed to have a mapping from this point
-	if err != redislib.Nil {
+	if err == redislib.Nil {
 		return "", fmt.Errorf("No customerId exists for this userId %s", userId)
 	}
 
@@ -320,19 +324,26 @@ func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID
 }
 
 /**
-* The get version of the stripe sync method. Gets the latest up-to-date data from the cache if it exists,
+* The get version of the payment cache sync method. Gets the latest up-to-date data from the cache if it exists,
 * otherwise calls the sync method to update the cache.
 **/
 func (s *service) GetStripeData(ctx context.Context, customerId string) (*StripeCacheData, error) {
 	// check if customer data already exists in the cache
-	data, err := s.cacheClient.Get(ctx, customerId)
+	dataJSON, err := s.cacheClient.Get(ctx, customerId)
 
 	// if it doesn't we sync the data right there
-	if err != redislib.Nil {
+	if err == redislib.Nil {
 		fmt.Printf("Customer data doesn't exist in cache.")
 
 		// sync data to cache
-		s.SyncStripeDataToStorage(ctx, customerId)
+		err := s.SyncStripeDataToStorage(ctx, customerId)
+		if err != nil {
+			fmt.Printf("failed to resync method during attempt to get cached data.")
+			return nil, err
+		}
+
+		// attempt to get the data again after syncing
+		return s.GetStripeData(ctx, customerId)
 	}
 
 	// handle other exceptions
@@ -342,11 +353,15 @@ func (s *service) GetStripeData(ctx context.Context, customerId string) (*Stripe
 	}
 
 	// data already exists, just unmarshal and return it
-	fmt.Printf("\ncache data before unmarshal: %+v\n\n", data)
+	fmt.Printf("\ncache data before unmarshal: %+v\n\n", dataJSON)
 
 	var cacheData StripeCacheData
 
-	err = json.Unmarshal([]byte(data), &cacheData)
+	err = json.Unmarshal([]byte(dataJSON), &cacheData)
+	if err != nil {
+		fmt.Printf("error when attempting to get unmarshal data for customerID %s\nerr was:\n%+v\n", customerId, err)
+		return nil, err
+	}
 
 	fmt.Printf("\ncache data after unmarshal: %+v\n\n", cacheData)
 	return &cacheData, nil
@@ -693,7 +708,10 @@ func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UU
 		return nil, err
 	}
 
+	// TODO:
 	// get subscription status
 	stripeCacheData, err := s.GetStripeData(ctx, cusId)
+
+	fmt.Printf("stripeCachData when getting subscription status:", stripeCacheData)
 	return nil, nil
 }

@@ -30,7 +30,16 @@ type UserPaymentService interface {
 }
 
 func NewService(repo Repository) *service {
-	return &service{repo: repo}
+	return &service{
+		repo: repo,
+	}
+}
+
+/**
+* dependency injection for payment service after payment service finished setting up with base user service
+**/
+func (s *service) SetPaymentService(paymentService UserPaymentService) {
+	s.paymentService = paymentService
 }
 
 func (s *service) Create(ctx context.Context, user *User) error {
@@ -100,9 +109,8 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 }
 
 func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
-
-	// not ok to fail, will sync up later with eventual consistency
-	// don't update repo until cache is updated successfully to prevent unecessary rollbacks
+	// not ok to fail
+	// don't update repo until cache is updated successfully to prevent unnecessary rollbacks
 	// updates cache with customerId to userId mapping
 	err := s.paymentService.AddCacheUserIdToCusId(ctx, userId, customerId)
 

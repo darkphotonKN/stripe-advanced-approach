@@ -37,12 +37,12 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 		AllowCredentials: true,
 	}))
 
+	api := router.Group("/api")
+
+	// user setup
 	userRepo := user.NewRepository(db)
 	userService := user.NewService(userRepo)
 	userHandler := user.NewHandler(userService)
-
-	api := router.Group("/api")
-
 	api.POST("/signup", userHandler.SignUp)
 	api.POST("/signin", userHandler.SignIn)
 
@@ -59,6 +59,10 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	stripeProcessor := payment.NewStripeProcessor()
 	paymentRepository := payment.NewRepository(db)
 	paymentService := payment.NewService(paymentRepository, userService, stripeProcessor, cacheClient)
+
+	// injecting proper payment service after completing payment service initialization
+	userService.SetPaymentService(paymentService)
+
 	paymentHandler := payment.NewHandler(paymentService)
 
 	// for stripe webhooks
