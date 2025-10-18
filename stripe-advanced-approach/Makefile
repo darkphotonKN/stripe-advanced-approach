@@ -22,6 +22,9 @@ test-coverage:
 test-payment:
 	go test ./internal/payment -v
 
+test-subscription:
+	go test ./internal/subscription -v
+
 migrate-up:
 	migrate -path migrations -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable" up
 
