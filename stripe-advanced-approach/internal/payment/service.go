@@ -343,6 +343,8 @@ func (s *service) GetStripeData(ctx context.Context, customerId string) (*Stripe
 		}
 
 		// attempt to get the data again after syncing
+		// TODO: fix
+		// BUG: currently keeps recursing
 		return s.GetStripeData(ctx, customerId)
 	}
 

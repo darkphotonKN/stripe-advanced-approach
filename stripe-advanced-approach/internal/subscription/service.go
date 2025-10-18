@@ -35,5 +35,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 
 // GetSubscriptionStatus retrieves the user's subscription status
 func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
-	return nil, nil
+	// TODO: complete implementation
+	_, err := s.paymentService.GetSubscriptionStatusCache(ctx, userId)
+	return nil, err
 }
