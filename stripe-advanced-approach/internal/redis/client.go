@@ -108,3 +108,30 @@ func (c *Client) GetJSON(ctx context.Context, key string, dest interface{}) erro
 
 	return json.Unmarshal([]byte(jsonStr), dest)
 }
+
+/**
+* Helper methods to assist in maintaining the synchronization of keys
+*
+* There are 3 primary keys for mappings right now:
+* - 1. key: stripe:customer:[customerid] value: customer stripe data - customerId to the customer stripe data
+* - 2. key: stripe:customer:{customerid}:userid value: userId - customerId to userId
+* - 3. key: stripe:customer:userid:{userid} value: customerId - userId to customerId
+**/
+
+const (
+	cacheKeyCustomerData       = "stripe:customer:%s"
+	cacheKeyCustomerIdToUserId = "stripe:customer:%s:userid"
+	cacheKeyUserIdToCustomerId = "stripe:customer:userid:%s"
+)
+
+// customer to userId
+func (c *Client) GetUserIdFromCusIdKey(customerId string) string {
+	key := fmt.Sprintf(cacheKeyCustomerIdToUserId, customerId)
+	return key
+}
+
+// userId to customerId
+func (c *Client) GetCusIdFromUserIdKey(userId string) string {
+	key := fmt.Sprintf(cacheKeyUserIdToCustomerId, userId)
+	return key
+}

@@ -93,7 +93,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
-	stripeCusKey := fmt.Sprintf("stripe:customer:%s", customerId)
+	stripeCusKey := s.cacheClient.GetUserIdFromCusIdKey(customerId)
 
 	// -- subscriptions --
 
@@ -345,6 +345,7 @@ func (s *service) GetStripeData(ctx context.Context, customerId string) (*Stripe
 		// attempt to get the data again after syncing
 		// TODO: fix
 		// BUG: currently keeps recursing
+		fmt.Println("STILL NO INJECTED AGAIN AND RESYNCING VIA RECURSION")
 		return s.GetStripeData(ctx, customerId)
 	}
 
@@ -473,7 +474,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 }
 
 func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID string) (uuid.UUID, error) {
-	key := fmt.Sprintf("stripe:customer:%s:userid", customerID)
+	key := s.cacheClient.GetUserIdFromCusIdKey(customerID)
 	userIdStr, err := s.cacheClient.Get(ctx, key)
 
 	// key doesn't exist, acquire userId to fill in cache
