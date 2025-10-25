@@ -93,7 +93,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
-	stripeCusKey := s.cacheClient.GetUserIdFromCusIdKey(customerId)
+	stripeCusKey := s.cacheClient.GetCustomerDataFromCustomerId(customerId)
 
 	// -- subscriptions --
 

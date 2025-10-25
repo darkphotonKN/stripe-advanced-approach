@@ -16,6 +16,7 @@ type Cache interface {
 	Pipeline() redis.Pipeliner
 	Close() error
 	Ping(ctx context.Context) error
-	GetUserIdFromCusIdKey(customerId string) string
-	GetCusIdFromUserIdKey(userId string) string
+	GetUserIdFromCustomerIdKey(customerId string) string
+	GetCustomerIdFromUserIdKey(userId string) string
+	GetCustomerDataFromCustomerId(customerId string) string
 }

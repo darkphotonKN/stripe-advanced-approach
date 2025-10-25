@@ -112,10 +112,14 @@ func (c *Client) GetJSON(ctx context.Context, key string, dest interface{}) erro
 /**
 * Helper methods to assist in maintaining the synchronization of keys
 *
-* There are 3 primary keys for mappings right now:
-* - 1. key: stripe:customer:[customerid] value: customer stripe data - customerId to the customer stripe data
-* - 2. key: stripe:customer:{customerid}:userid value: userId - customerId to userId
-* - 3. key: stripe:customer:userid:{userid} value: customerId - userId to customerId
+* There are 3 primary keys for mappings:
+*
+* -- Data --
+* - 1. stripe:customer:{customerId} → full customer stripe data
+*
+* -- Key Mappings --
+* - 2. stripe:customer:{customerId}:userid →  userId (customerId →  userId lookup)
+* - 3. stripe:customer:userid:{userId} →  customerId (userId →  customerId lookup)
 **/
 
 const (
@@ -123,6 +127,11 @@ const (
 	cacheKeyCustomerIdToUserId = "stripe:customer:%s:userid"
 	cacheKeyUserIdToCustomerId = "stripe:customer:userid:%s"
 )
+
+func (c *Client) GetCustomerDataFromCustomerId(customerId string) string {
+	key := fmt.Sprintf(cacheKeyCustomerData, customerId)
+	return key
+}
 
 // customer to userId
 func (c *Client) GetUserIdFromCusIdKey(customerId string) string {
