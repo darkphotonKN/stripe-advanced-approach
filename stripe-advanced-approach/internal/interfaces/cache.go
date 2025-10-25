@@ -18,5 +18,5 @@ type Cache interface {
 	Ping(ctx context.Context) error
 	GetUserIdFromCustomerIdKey(customerId string) string
 	GetCustomerIdFromUserIdKey(userId string) string
-	GetCustomerDataFromCustomerId(customerId string) string
+	GetCustomerDataFromCustomerIdKey(customerId string) string
 }

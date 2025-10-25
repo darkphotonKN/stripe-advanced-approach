@@ -94,7 +94,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
 	// TODO: update with new methods
-	stripeCusKey := s.cacheClient.GetCustomerDataFromCustomerId(customerId)
+	stripeUpdateCusWithCusIdKey := s.cacheClient.GetCustomerDataFromCustomerIdKey(customerId)
 
 	// -- subscriptions --
 
@@ -301,7 +301,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// update redis
-	err = s.cacheClient.Set(ctx, stripeCusKey, cacheStateJSON, 0)
+	err = s.cacheClient.Set(ctx, stripeUpdateCusWithCusIdKey, cacheStateJSON, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
@@ -314,7 +314,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 * adds/sets the mapping between userId and payment processor customerId in cache
 **/
 func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
-	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
+	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerId)
 	err := s.cacheClient.Set(ctx, key, customerId, 0)
 
 	if err != nil {
@@ -328,7 +328,7 @@ func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, c
 * gets cached customerId with the userId
 **/
 func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID) (string, error) {
-	key := fmt.Sprintf("stripe:userId:%s:customerId", userId.String())
+	key := s.cacheClient.GetCustomerIdFromUserIdKey(userId.String())
 	customerId, err := s.cacheClient.Get(ctx, key)
 
 	// doesn't exist in cache, error, cache is supposed to have a mapping from this point
@@ -348,8 +348,10 @@ func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID
 * otherwise calls the sync method to update the cache.
 **/
 func (s *service) GetStripeData(ctx context.Context, customerId string) (*StripeCacheData, error) {
+	customerDataFromCustomerIDKey := s.cacheClient.GetCustomerDataFromCustomerIdKey(customerId)
+
 	// check if customer data already exists in the cache
-	dataJSON, err := s.cacheClient.Get(ctx, customerId)
+	dataJSON, err := s.cacheClient.Get(ctx, customerDataFromCustomerIDKey)
 
 	// if it doesn't we sync the data right there
 	if err == redislib.Nil {

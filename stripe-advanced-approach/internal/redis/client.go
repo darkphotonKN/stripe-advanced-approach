@@ -128,7 +128,7 @@ const (
 	cacheKeyUserIdToCustomerId = "stripe:customer:userid:%s"
 )
 
-func (c *Client) GetCustomerDataFromCustomerId(customerId string) string {
+func (c *Client) GetCustomerDataFromCustomerIdKey(customerId string) string {
 	key := fmt.Sprintf(cacheKeyCustomerData, customerId)
 	return key
 }
