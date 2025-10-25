@@ -77,10 +77,10 @@ Value: "cus_stripe123"        // Customer ID mapping
 *
 */
 func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
-	// --- Data Organization ---
-
 	// get latest up-to-date data from stripe
 	customer, err := customer.Get(customerId, nil)
+
+	// --- Data Organization ---
 
 	if err != nil {
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
@@ -93,6 +93,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
 
+	// TODO: update with new methods
 	stripeCusKey := s.cacheClient.GetCustomerDataFromCustomerId(customerId)
 
 	// -- subscriptions --
@@ -126,6 +127,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// -- payments --
+
 	payments := []*stripe.PaymentIntent{}
 
 	paymentParams := &stripe.PaymentIntentListParams{
@@ -145,6 +147,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// --- DB Storage ---
+	// we do this first and roll back before even updating cache in case of error
 
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
@@ -157,13 +160,33 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	// update application database for the respective tables
 
 	// -- user
-	user, err := s.userService.GetByStripeCustomerID(ctx, customerId)
+
+	// get userId from cache / db depending on availability
+	userId, err := s.GetCachedUserIdByCustomerId(ctx, customerId)
+
+	if err != nil {
+		fmt.Printf("\nUnexpected error when trying to get userId from cache: %s\n\n", err)
+		return err
+	}
+
+	// if not availble, use direct db query
+	if err == redislib.Nil {
+		user, err := s.userService.GetByStripeCustomerID(ctx, customerId)
+
+		if err != nil {
+			fmt.Printf("unexpected error when trying to query for userId: %s\n", err)
+			return err
+		}
+
+		// update userId with this version
+		userId = user.ID
+	}
 
 	// -- subscription --
 
 	for _, sub := range subscriptions {
 		err := s.repo.UpsertSubscriptionRecord(ctx, &Subscription{
-			UserID:               user.ID,
+			UserID:               userId,
 			Status:               string(sub.Status),
 			StripeSubscriptionID: sub.ID,
 			StripeCustomerID:     customerId,
@@ -175,9 +198,6 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	}
 
 	// -- payments --
-
-	// get userId from cache / db depending on availability
-	userId, err := s.GetCachedUserIdByCustomerId(ctx, customerId)
 
 	for _, payment := range payments {
 		err := s.repo.UpsertPayment(ctx, payment.ID, &Payment{
