@@ -496,7 +496,7 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 }
 
 func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID string) (uuid.UUID, error) {
-	key := s.cacheClient.GetUserIdFromCusIdKey(customerID)
+	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerID)
 	userIdStr, err := s.cacheClient.Get(ctx, key)
 
 	// key doesn't exist, acquire userId to fill in cache

@@ -134,13 +134,13 @@ func (c *Client) GetCustomerDataFromCustomerIdKey(customerId string) string {
 }
 
 // customer to userId
-func (c *Client) GetUserIdFromCusIdKey(customerId string) string {
+func (c *Client) GetUserIdFromCustomerIdKey(customerId string) string {
 	key := fmt.Sprintf(cacheKeyCustomerIdToUserId, customerId)
 	return key
 }
 
 // userId to customerId
-func (c *Client) GetCusIdFromUserIdKey(userId string) string {
+func (c *Client) GetCustomerIdFromUserIdKey(userId string) string {
 	key := fmt.Sprintf(cacheKeyUserIdToCustomerId, userId)
 	return key
 }
