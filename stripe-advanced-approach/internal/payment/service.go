@@ -355,12 +355,12 @@ func (s *service) GetStripeData(ctx context.Context, customerId string) (*Stripe
 
 	// if it doesn't we sync the data right there
 	if err == redislib.Nil {
-		fmt.Printf("Customer data doesn't exist in cache.")
+		fmt.Printf("Customer data doesn't exist in cache.\n")
 
 		// sync data to cache
 		err := s.SyncStripeDataToStorage(ctx, customerId)
 		if err != nil {
-			fmt.Printf("failed to resync method during attempt to get cached data.")
+			fmt.Printf("failed to resync method during attempt to get cached data.\n")
 			return nil, err
 		}
 

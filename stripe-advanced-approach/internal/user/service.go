@@ -27,6 +27,7 @@ type service struct {
 
 type UserPaymentService interface {
 	AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error
+	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
 }
 
 func NewService(repo Repository) *service {
@@ -53,7 +54,23 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	}
 	user.Password = string(hashedPassword)
 
-	return s.repo.Create(ctx, user)
+	err = s.repo.Create(ctx, user)
+
+	if err != nil {
+		fmt.Printf("could not create user.\n")
+		return err
+	}
+
+	// create a payment processor user once user is created on platform
+	// TODO: add returning id from database after creation
+	_, err = s.paymentService.CreateCustomer(ctx, user.ID, user.Email)
+
+	if err != nil {
+		fmt.Printf("could not create payment processor customer.\n")
+		return err
+	}
+	return nil
+
 }
 
 func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
