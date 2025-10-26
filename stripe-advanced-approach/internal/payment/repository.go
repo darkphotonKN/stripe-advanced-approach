@@ -44,7 +44,7 @@ func (r *repository) GetPaymentByIntentID(ctx context.Context, intentID string) 
 
 	query := `
 		SELECT * FROM payments
-		WHERE stripe_intent_id = $1
+		WHERE stripe_payment_intent_id = $1
 	`
 
 	err := r.db.GetContext(ctx, &payment, query, intentID)

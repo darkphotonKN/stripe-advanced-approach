@@ -9,9 +9,9 @@ import (
 // General Payments Entity
 type Payment struct {
 	ID                 uuid.UUID  `db:"id" json:"id"`
-	UserID             uuid.UUID  `db:"user_d" json:"user_id"`
+	UserID             uuid.UUID  `db:"user_id" json:"user_id"`
 	StripeCustomerID   string     `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeIntentID     string     `db:"stripe_intent_id" json:"stripe_intent_id"`
+	StripeIntentID     string     `db:"stripe_payment_intent_id" json:"stripe_intent_id"`
 	StripeSessionID    string     `db:"stripe_session_id" json:"stripe_session_id"`
 	Amount             int64      `db:"amount" json:"amount"`
 	Currency           string     `db:"currency" json:"currency"`
@@ -131,7 +131,7 @@ type SubscribeResponse struct {
 type PaymentIntentRequest struct {
 	CustomerID string `json:"customer_id" db:"customer_id"`
 	Amount     int64  `json:"amount" db:"amount"`
-	IntentID   string `json:"intent_id" db:"stripe_intent_id"`
+	IntentID   string `json:"intent_id" db:"stripe_payment_intent_id"`
 }
 
 type CheckoutSessionResponse struct {

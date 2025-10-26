@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS payments (
     amount INTEGER NOT NULL,
     currency VARCHAR(3) DEFAULT 'usd',
     status VARCHAR(50) DEFAULT 'pending', -- pending, processing, succeeded, failed
+    payment_method_types VARCHAR(255),
     product_id VARCHAR(255),
+    completed_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );

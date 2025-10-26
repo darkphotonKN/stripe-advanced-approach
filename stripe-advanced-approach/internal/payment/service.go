@@ -540,7 +540,7 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 	customerId, err := s.paymentProcessor.ProcessWebhookEvent(ctx, event)
 
 	if err != nil {
-		fmt.Printf("\npaymentProcessor method ProcessWebhookEvent could not process incoming event of %s, err :+v\n\n", event, err)
+		fmt.Printf("\npaymentProcessor method ProcessWebhookEvent could not process incoming event of %+v, err :%+v\n\n", event, err)
 		return err
 	}
 
@@ -737,6 +737,6 @@ func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UU
 	// get subscription status
 	stripeCacheData, err := s.GetStripeData(ctx, cusId)
 
-	fmt.Printf("stripeCachData when getting subscription status:", stripeCacheData)
+	fmt.Printf("\nstripeCachData when getting subscription status: \n%+v\n\n", stripeCacheData)
 	return nil, nil
 }

@@ -39,6 +39,14 @@ migrate-reset:
 migrate-create:
 	migrate create -ext sql -dir migrations -seq $(NAME)
 
+# Force migration to a specific version
+migrate-force:
+	migrate -path migrations -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable" force $(VERSION)
+
+# Show current migration version
+migrate-version:
+	migrate -path migrations -database "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=disable" version
+
 docker-up:
 	docker-compose up -d
 
