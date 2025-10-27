@@ -29,7 +29,7 @@ type UserPaymentService interface {
 	AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error
 	AddCacheCusIdToUserId(ctx context.Context, customerId string, userId uuid.UUID) error
 	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
-	SyncStripeDataToStorage(ctx context.Context, customerId string)
+	SyncStripeDataToStorage(ctx context.Context, customerId string) error
 }
 
 func NewService(repo Repository) *service {
@@ -138,18 +138,22 @@ func (s *service) SyncCacheAndMappings(ctx context.Context, userId uuid.UUID, cu
 	err := s.paymentService.AddCacheUserIdToCusId(ctx, userId, customerId)
 
 	if err != nil {
-		fmt.Printf("Error syncing up cache: %s\n", err)
+		fmt.Printf("Error syncing up userId to customerId cache: %s\n", err)
 	}
 
 	// updates cache with customerId to userId mapping
 	err = s.paymentService.AddCacheCusIdToUserId(ctx, customerId, userId)
 
 	if err != nil {
-		fmt.Printf("Error syncing up cache: %s\n", err)
+		fmt.Printf("Error syncing up customerId to userId in cache: %s\n", err)
 	}
 
 	// sync primary customer data in cache
-	s.paymentService.SyncStripeDataToStorage(ctx, customerId)
+	err = s.paymentService.SyncStripeDataToStorage(ctx, customerId)
+
+	if err != nil {
+		fmt.Printf("Error syncing up customer data in cache: %s\n", err)
+	}
 }
 
 func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
