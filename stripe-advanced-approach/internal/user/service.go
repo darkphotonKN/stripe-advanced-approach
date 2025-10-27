@@ -27,7 +27,9 @@ type service struct {
 
 type UserPaymentService interface {
 	AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error
+	AddCacheCusIdToUserId(ctx context.Context, customerId string, userId uuid.UUID) error
 	CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error)
+	SyncStripeDataToStorage(ctx context.Context, customerId string)
 }
 
 func NewService(repo Repository) *service {
@@ -107,6 +109,7 @@ func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 func (s *service) Authenticate(ctx context.Context, email, password string) (*User, error) {
+	// --- User Authentication ---
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		fmt.Printf("Error when authenticating email: %s\n", err)
@@ -119,27 +122,47 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 
 	user.Password = ""
 
-	// attempt to update cache customerId with userId
-	s.paymentService.AddCacheUserIdToCusId(ctx, user.ID, *user.StripeCustomerID)
+	// --- Cache Updates ---
+
+	customerId := *user.StripeCustomerID
+	userId := user.ID
+
+	// don't stop the flow, but log the failure of cache updates
+	go s.SyncCacheAndMappings(ctx, userId, customerId)
 
 	return user, nil
 }
 
-func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
-	// not ok to fail
-	// don't update repo until cache is updated successfully to prevent unnecessary rollbacks
+func (s *service) SyncCacheAndMappings(ctx context.Context, userId uuid.UUID, customerId string) {
 	// updates cache with customerId to userId mapping
 	err := s.paymentService.AddCacheUserIdToCusId(ctx, userId, customerId)
 
 	if err != nil {
-		return err
+		fmt.Printf("Error syncing up cache: %s\n", err)
 	}
 
-	err = s.repo.UpdateStripeCustomer(ctx, userId, customerId)
+	// updates cache with customerId to userId mapping
+	err = s.paymentService.AddCacheCusIdToUserId(ctx, customerId, userId)
+
+	if err != nil {
+		fmt.Printf("Error syncing up cache: %s\n", err)
+	}
+
+	// sync primary customer data in cache
+	s.paymentService.SyncStripeDataToStorage(ctx, customerId)
+}
+
+func (s *service) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
+	// not ok to fail
+	// don't update cache until repo is updated successfully to prevent unnecessary rollbacks
+	err := s.repo.UpdateStripeCustomer(ctx, userId, customerId)
 
 	if err != nil {
 		return err
 	}
+
+	// updates cache with customerId to userId mapping
+	go s.SyncCacheAndMappings(ctx, userId, customerId)
 
 	return nil
 }
