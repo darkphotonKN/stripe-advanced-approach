@@ -14,13 +14,20 @@ func NewRepository(db *sqlx.DB) *repository {
 	return &repository{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, user *User) error {
+func (r *repository) Create(ctx context.Context, user *User) (*User, error) {
 	query := `
 		INSERT INTO users (email, password, name, created_at, updated_at)
 		VALUES ($1, $2, $3, NOW(), NOW())
-		RETURNING id, created_at, updated_at
+		RETURNING id, email, name, created_at, updated_at
 	`
-	return r.db.GetContext(ctx, user, query, user.Email, user.Password, user.Name)
+	var createdUser *User
+	err := r.db.GetContext(ctx, createdUser, query, user.Email, user.Password, user.Name)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return createdUser, nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {

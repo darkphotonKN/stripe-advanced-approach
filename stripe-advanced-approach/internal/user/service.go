@@ -10,7 +10,7 @@ import (
 )
 
 type Repository interface {
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *User) (*User, error)
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)
 	GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*User, error)
@@ -56,7 +56,7 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	}
 	user.Password = string(hashedPassword)
 
-	err = s.repo.Create(ctx, user)
+	createdUser, err := s.repo.Create(ctx, user)
 
 	if err != nil {
 		fmt.Printf("could not create user.\n")
@@ -64,13 +64,15 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	}
 
 	// create a payment processor user once user is created on platform
-	// TODO: add returning id from database after creation
-	_, err = s.paymentService.CreateCustomer(ctx, user.ID, user.Email)
+	customerID, err := s.paymentService.CreateCustomer(ctx, createdUser.ID, user.Email)
 
 	if err != nil {
 		fmt.Printf("could not create payment processor customer.\n")
 		return err
 	}
+
+	// sync to cache
+	go s.SyncCacheAndMappings(ctx, createdUser.ID, customerID)
 	return nil
 
 }
