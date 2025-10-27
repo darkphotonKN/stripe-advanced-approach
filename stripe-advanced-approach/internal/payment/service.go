@@ -311,11 +311,11 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 }
 
 /**
-* adds/sets the mapping between userId and payment processor customerId in cache
+* adds/sets the mapping between userId and customerId in cache
 **/
 func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
 	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerId)
-	err := s.cacheClient.Set(ctx, key, customerId, 0)
+	err := s.cacheClient.Set(ctx, key, userId, 0)
 
 	if err != nil {
 		return fmt.Errorf("failed to cache userId to customerId mapping: %w", err)
@@ -325,11 +325,10 @@ func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, c
 }
 
 /**
-* adds/sets the mapping between userId and payment processor customerId in cache
+* adds/sets the mapping between customerId and userId in cache
 **/
 func (s *service) AddCacheCusIdToUserId(ctx context.Context, customerId string, userId uuid.UUID) error {
-	// TODO: not up to date, should reversed
-	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerId)
+	key := s.cacheClient.GetCustomerIdFromUserIdKey(userId.String())
 	err := s.cacheClient.Set(ctx, key, customerId, 0)
 
 	if err != nil {
