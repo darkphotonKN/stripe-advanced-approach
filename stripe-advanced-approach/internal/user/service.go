@@ -59,7 +59,7 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	createdUser, err := s.repo.Create(ctx, user)
 
 	if err != nil {
-		fmt.Printf("could not create user.\n")
+		fmt.Printf("could not create user, err:%s\n", err)
 		return err
 	}
 
