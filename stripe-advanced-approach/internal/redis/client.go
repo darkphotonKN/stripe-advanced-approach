@@ -31,6 +31,7 @@ func NewClient() *Client {
 		rdb: rdb,
 	}
 }
+
 func (c *Client) Connect(ctx context.Context) error {
 	// Test the connection
 	_, err := c.rdb.Ping(ctx).Result()
@@ -123,7 +124,7 @@ func (c *Client) GetJSON(ctx context.Context, key string, dest interface{}) erro
 **/
 
 const (
-	cacheKeyCustomerData       = "stripe:customer:%s"
+	cacheKeyCustomerData       = "stripe:customer:123"
 	cacheKeyCustomerIdToUserId = "stripe:customer:%s:userid"
 	cacheKeyUserIdToCustomerId = "stripe:customer:userid:%s"
 )

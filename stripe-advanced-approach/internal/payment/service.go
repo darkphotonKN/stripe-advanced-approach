@@ -314,7 +314,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 * adds/sets the mapping between userId and customerId in cache
 **/
 func (s *service) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
-	fmt.Printf("\nupdating customerId to userId in cache..\ncustomerId key provided was :%s\nuserId value provided was %s\n\n", customerId, userId)
+	fmt.Printf("\nupdating customerId to userId in cache..\ncustomerId key provided was :%s\nuserId value provided was: %s\n\n", customerId, userId)
 	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerId)
 	err := s.cacheClient.Set(ctx, key, userId.String(), 0)
 

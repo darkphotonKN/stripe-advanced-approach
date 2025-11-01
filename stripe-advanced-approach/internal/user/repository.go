@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 )
@@ -15,19 +17,22 @@ func NewRepository(db *sqlx.DB) *repository {
 }
 
 func (r *repository) Create(ctx context.Context, user *User) (*User, error) {
+	fmt.Printf("repo create inc user: %+v\n", *user)
+	fmt.Printf("repo create inc user.email\n user.password %s \nuser.name: %+v\n", user.Email, user.Password, user.Name)
+
 	query := `
 		INSERT INTO users (email, password, name, created_at, updated_at)
 		VALUES ($1, $2, $3, NOW(), NOW())
 		RETURNING id, email, name, created_at, updated_at
 	`
-	var createdUser *User
-	err := r.db.GetContext(ctx, createdUser, query, user.Email, user.Password, user.Name)
+	var createdUser User
+	err := r.db.GetContext(ctx, &createdUser, query, user.Email, user.Password, user.Name)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return createdUser, nil
+	return &createdUser, nil
 }
 
 func (r *repository) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {
