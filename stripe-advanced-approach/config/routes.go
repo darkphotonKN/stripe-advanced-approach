@@ -10,7 +10,6 @@ import (
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/middleware"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/payment"
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/subscription"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 )
 
@@ -78,12 +77,9 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	protected.POST("/purchase-product", paymentHandler.PurchaseProduct)
 	protected.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
 
-	// subscription setup
-	subscriptionService := subscription.NewService(userService, paymentService)
-	subscriptionHandler := subscription.NewHandler(subscriptionService)
-
-	protected.POST("/subscription/subscribe", subscriptionHandler.Subscribe)
-	protected.GET("/subscription/status", subscriptionHandler.GetSubscriptionStatus)
+	// subscription endpoints
+	protected.POST("/subscription/subscribe", paymentHandler.Subscribe)
+	protected.GET("/subscription/status", paymentHandler.GetSubscriptionStatus)
 
 	return router
 }

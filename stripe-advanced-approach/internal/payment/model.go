@@ -127,6 +127,18 @@ type SubscribeResponse struct {
 	Status         string `json:"status"`          // "incomplete" until payment confirmed
 }
 
+// Subscribe To Site
+type SubscribeToSiteResponse struct {
+	Status string `json:"status"`
+}
+
+// Minimal response for frontend UI decisions
+type SubscriptionStatusResponse struct {
+	HasAccess         bool   `json:"has_access"`           // Simple boolean for "can see premium page?"
+	Status            string `json:"status"`               // "active", "canceled", "past_due", "none"
+	CancelAtPeriodEnd bool   `json:"cancel_at_period_end"` // Show "Renews on" vs "Expires on"
+}
+
 // Payment Intent Request for internal use
 type PaymentIntentRequest struct {
 	CustomerID string `json:"customer_id" db:"customer_id"`

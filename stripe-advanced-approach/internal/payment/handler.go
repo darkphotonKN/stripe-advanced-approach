@@ -26,6 +26,8 @@ type Service interface {
 	PurchaseProduct(ctx context.Context, userId uuid.UUID, req *PurchaseProductRequest) (*PurchaseProductResponse, error)
 	SetupSubscription(ctx context.Context, request *SetupProductsReq) (*SetupProductsResp, error)
 	SubscribeToProduct(ctx context.Context, userId uuid.UUID, req *SubscribeRequest) (*SubscribeResponse, error)
+	SubscribeToSite(ctx context.Context, userId uuid.UUID) (*SubscribeToSiteResponse, error)
+	GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error)
 
 	// flow based methods
 	ProcessWebhookEvent(ctx context.Context, event *stripe.Event) error
@@ -184,6 +186,61 @@ func (h *Handler) SubscribeToProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+// POST /api/subscription/subscribe
+func (h *Handler) Subscribe(c *gin.Context) {
+	userIdStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userId, err := uuid.Parse(userIdStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	var req SubscribeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Service returns checkout URL or client secret
+	response, err := h.service.SubscribeToProduct(c.Request.Context(), userId, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GET /api/subscription/status
+// Frontend calls this to check if user can access premium content
+// Returns ONLY what frontend needs to make UI decisions
+func (h *Handler) GetSubscriptionStatus(c *gin.Context) {
+	userIdStr, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userId, err := uuid.Parse(userIdStr.(string))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	status, err := h.service.GetSubscriptionStatus(c.Request.Context(), userId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
 }
 
 func (h *Handler) HandleStripeWebhook(c *gin.Context) {

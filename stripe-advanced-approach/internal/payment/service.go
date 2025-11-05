@@ -755,3 +755,10 @@ func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UU
 	fmt.Printf("\nstripeCachData when getting subscription status: \n%+v\n\n", stripeCacheData)
 	return nil, nil
 }
+
+// GetSubscriptionStatus retrieves the user's subscription status
+func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
+	// TODO: complete implementation
+	_, err := s.GetSubscriptionStatusCache(ctx, userId)
+	return nil, err
+}
