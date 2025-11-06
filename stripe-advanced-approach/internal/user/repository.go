@@ -59,11 +59,11 @@ func (r *repository) List(ctx context.Context) ([]User, error) {
 func (r *repository) Update(ctx context.Context, user *User) error {
 	query := `
 		UPDATE users
-		SET name = $1, email = $2, updated_at = NOW()
-		WHERE id = $3
+		SET name = $1, email = $2, subscribed = $3, updated_at = NOW()
+		WHERE id = $4
 		RETURNING updated_at
 	`
-	return r.db.GetContext(ctx, user, query, user.Name, user.Email, user.ID)
+	return r.db.GetContext(ctx, user, query, user.Name, user.Email, user.Subscribed, user.ID)
 }
 
 func (r *repository) Delete(ctx context.Context, id uuid.UUID) error {

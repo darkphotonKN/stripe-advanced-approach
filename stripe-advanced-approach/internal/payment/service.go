@@ -8,6 +8,7 @@ import (
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/model"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/util"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	redislib "github.com/redis/go-redis/v9"
@@ -38,6 +39,7 @@ type Repository interface {
 type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 	GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*user.User, error)
+	Update(ctx context.Context, userID uuid.UUID, user *user.User) error
 }
 
 func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor, cacheClient interfaces.Cache) *service {
@@ -510,6 +512,44 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 	return res, nil
 }
 
+func (s *service) SubscribeToSite(ctx context.Context, userId uuid.UUID) (*SubscribeToSiteResponse, error) {
+
+	customerID, err := s.GetCachedCusIdFromUserId(ctx, userId)
+
+	if err != nil {
+		fmt.Printf("\nError occured when attempting to get cached customerId from userId: %s\n\n", err)
+		return nil, err
+	}
+
+	fmt.Printf("\ncustomerID from cache: %s\n\n", customerID)
+
+	var ProSubscriptionProductID string = util.GetEnv("SUBSCRIPTION_PROD_ID", "")
+
+	// subscribe users to the pre-setup subscription pro product
+	_, err = s.SubscribeToProduct(ctx, userId, &SubscribeRequest{
+		CustomerID: customerID,
+		ProductID:  ProSubscriptionProductID, // subscription pro productID
+	})
+
+	if err != nil {
+		fmt.Printf("\nError occured when attempting to subsribe to the site for pro plan: %s\n\n", err)
+		return nil, err
+	}
+
+	// confirmed subscription, update user's subscribe status
+	err = s.userService.Update(ctx, userId, &user.User{
+		Subscribed: true,
+	})
+
+	// rollback subscription if DB fails
+	if err != nil {
+		fmt.Printf("Subscription update in DB failed, err: %s\n", err)
+		// TODO: add the rolleback
+	}
+
+	return &SubscribeToSiteResponse{}, nil
+}
+
 func (s *service) GetCachedUserIdByCustomerId(ctx context.Context, customerID string) (uuid.UUID, error) {
 	key := s.cacheClient.GetUserIdFromCustomerIdKey(customerID)
 	userIdStr, err := s.cacheClient.Get(ctx, key)
@@ -566,7 +606,35 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 	return nil
 }
 
+/**
+* for utilizing cache for checking the user's subscription status to the pro
+* plan of this site
+**/
+func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error) {
+	// get customerId from cache
+	cusId, err := s.GetCachedCusIdFromUserId(ctx, userId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO:
+	// get subscription status
+	stripeCacheData, err := s.GetStripeData(ctx, cusId)
+
+	fmt.Printf("\nstripeCachData when getting subscription status: \n%+v\n\n", stripeCacheData)
+	return nil, nil
+}
+
+// GetSubscriptionStatus retrieves the user's subscription status
+func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
+	// TODO: complete implementation
+	_, err := s.GetSubscriptionStatusCache(ctx, userId)
+	return nil, err
+}
+
 // Helper functions to convert Stripe types to our cache types
+
 func convertAddress(addr *stripe.Address) *CustomerAddress {
 	if addr == nil {
 		return nil
@@ -734,31 +802,4 @@ func convertTaxIds(t *stripe.TaxIDList) *CustomerTaxIdList {
 		HasMore: t.HasMore,
 		Url:     t.URL,
 	}
-}
-
-/**
-* for utilizing cache for checking the user's subscription status to the pro
-* plan of this site
-**/
-func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error) {
-	// get customerId from cache
-	cusId, err := s.GetCachedCusIdFromUserId(ctx, userId)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO:
-	// get subscription status
-	stripeCacheData, err := s.GetStripeData(ctx, cusId)
-
-	fmt.Printf("\nstripeCachData when getting subscription status: \n%+v\n\n", stripeCacheData)
-	return nil, nil
-}
-
-// GetSubscriptionStatus retrieves the user's subscription status
-func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
-	// TODO: complete implementation
-	_, err := s.GetSubscriptionStatusCache(ctx, userId)
-	return nil, err
 }
