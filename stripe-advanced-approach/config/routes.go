@@ -68,18 +68,20 @@ func SetupRoutes(db *sqlx.DB, cacheClient interfaces.Cache) *gin.Engine {
 	stripeWebhookAPI := router.Group("/")
 	stripeWebhookAPI.POST("/webhook/stripe", paymentHandler.HandleStripeWebhook)
 
-	protected.POST("/setup-products", paymentHandler.SetupProducts)
-	protected.POST("/setup-subscription", paymentHandler.SetupSubscription)
-	protected.GET("/products", paymentHandler.GetProducts)
-	protected.POST("/create-customer", paymentHandler.CreateCustomer)
-	protected.POST("/save-card", paymentHandler.SaveCard)
-	protected.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
-	protected.POST("/purchase-product", paymentHandler.PurchaseProduct)
-	protected.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
+	// payment service endpoints
+	paymentRoutes := protected.Group("/payment")
+	paymentRoutes.POST("/setup-products", paymentHandler.SetupProducts)
+	paymentRoutes.POST("/setup-subscription", paymentHandler.SetupSubscription)
+	paymentRoutes.GET("/products", paymentHandler.GetProducts)
+	paymentRoutes.POST("/create-customer", paymentHandler.CreateCustomer)
+	paymentRoutes.POST("/save-card", paymentHandler.SaveCard)
+	paymentRoutes.POST("/create-payment-intent", paymentHandler.CreatePaymentIntent)
+	paymentRoutes.POST("/purchase-product", paymentHandler.PurchaseProduct)
+	paymentRoutes.POST("/subscribe-to-product", paymentHandler.SubscribeToProduct)
 
-	// subscription endpoints
-	protected.POST("/subscription/subscribe", paymentHandler.Subscribe)
-	protected.GET("/subscription/status", paymentHandler.GetSubscriptionStatus)
+	// subscription endpoints (part of payment service)
+	paymentRoutes.POST("/subscription/subscribe", paymentHandler.Subscribe)
+	paymentRoutes.GET("/subscription/status", paymentHandler.GetSubscriptionStatus)
 
 	return router
 }

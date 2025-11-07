@@ -94,6 +94,8 @@ func (h *Handler) SignIn(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("\nuser_id provided in claims after signin: %s", user.ID.String())
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID.String(),
 		"email":   user.Email,
@@ -190,7 +192,7 @@ func (h *Handler) GetStripeCustomer(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("userId from token:", userIDStr)
+	fmt.Printf("userId from token: %s\n", userIDStr)
 	userID, err := uuid.Parse(userIDStr.(string))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user ID in context"})

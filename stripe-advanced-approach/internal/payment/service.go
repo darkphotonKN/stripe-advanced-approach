@@ -357,6 +357,8 @@ func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID
 		return "", fmt.Errorf("unexpected error occured when attempting to find map of customer Id from userId: %s", userId)
 	}
 
+	fmt.Printf("\ncustomerId from cache: %s\n\n", customerId)
+
 	return customerId, nil
 }
 
@@ -543,7 +545,7 @@ func (s *service) SubscribeToSite(ctx context.Context, userId uuid.UUID) (*Subsc
 	// rollback subscription if DB fails
 	if err != nil {
 		fmt.Printf("Subscription update in DB failed, err: %s\n", err)
-		// TODO: add the rolleback
+		// TODO: add the rollback
 	}
 
 	return &SubscribeToSiteResponse{}, nil
