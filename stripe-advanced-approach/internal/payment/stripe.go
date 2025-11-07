@@ -226,7 +226,7 @@ func (s *StripeProcessor) GetProducts(ctx context.Context) (*ProductListResponse
 		productList = append(productList, productInfo)
 	}
 
-	fmt.Printf("\nproductList: %+v\n\n", productList)
+	// fmt.Printf("\nproductList: %+v\n\n", productList)
 
 	if err := iter.Err(); err != nil {
 		return nil, fmt.Errorf("error listing products: %w", err)

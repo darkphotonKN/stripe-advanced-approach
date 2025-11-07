@@ -8,6 +8,7 @@ import (
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -23,9 +24,17 @@ type PaymentTestSuite struct {
 	stripeProcessor PaymentProcessor
 	db              *sqlx.DB
 	cleanupFunc     func()
+
+	// metadata
+	testUser TestUser
 }
 
-func setupTestSuite(t *testing.T) *PaymentTestSuite {
+type TestUser struct {
+	userId     uuid.UUID
+	customerId string
+}
+
+func setupTestSuite(t *testing.T, testUser TestUser) *PaymentTestSuite {
 	t.Helper()
 
 	if err := godotenv.Load("../../.env"); err != nil {
@@ -84,6 +93,7 @@ func setupTestSuite(t *testing.T) *PaymentTestSuite {
 		stripeProcessor: testStripeProcessor,
 		db:              db,
 		cleanupFunc:     cleanup,
+		testUser:        testUser,
 	}
 }
 
@@ -93,21 +103,29 @@ func (suite *PaymentTestSuite) Cleanup() {
 	}
 }
 
+// Test user meta data
+var testUser = TestUser{
+	userId:     uuid.MustParse("7fdf18f8-78b6-4ca8-b2dd-d6dfb8286fe7"),
+	customerId: "cus_TNYXOoNL2FlSGA",
+}
+
+// Tests
+
 func TestSyncStripeDataToStorage(t *testing.T) {
-	suite := setupTestSuite(t)
+	suite := setupTestSuite(t, testUser)
 	defer suite.Cleanup()
 
-	err := suite.service.SyncStripeDataToStorage(suite.ctx, "cus_TJ60h8lizGx9CV")
+	err := suite.service.SyncStripeDataToStorage(suite.ctx, suite.testUser.customerId)
 	if err != nil {
 		t.Logf("errored when attempting to sync stripe data to storage: %v", err)
 	}
 }
 
 func TestGetStripeData(t *testing.T) {
-	suite := setupTestSuite(t)
+	suite := setupTestSuite(t, testUser)
 	defer suite.Cleanup()
 
-	_, err := suite.service.GetStripeData(suite.ctx, "cus_TJ60h8lizGx9CV")
+	_, err := suite.service.GetStripeData(suite.ctx, suite.testUser.customerId)
 	if err != nil {
 		t.Logf("Failed to get cached data: %v", err)
 	}

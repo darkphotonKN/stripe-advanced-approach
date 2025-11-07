@@ -513,7 +513,6 @@ func (s *service) SubscribeToProduct(ctx context.Context, userId uuid.UUID, req 
 }
 
 func (s *service) SubscribeToSite(ctx context.Context, userId uuid.UUID) (*SubscribeToSiteResponse, error) {
-
 	customerID, err := s.GetCachedCusIdFromUserId(ctx, userId)
 
 	if err != nil {
