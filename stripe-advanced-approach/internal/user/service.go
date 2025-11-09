@@ -51,9 +51,11 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+
 	if err != nil {
 		return err
 	}
+
 	user.Password = string(hashedPassword)
 
 	createdUser, err := s.repo.Create(ctx, user)
@@ -130,6 +132,8 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 	userId := user.ID
 
 	// don't stop the flow, but log the failure of cache updates
+	// BUG: still not working
+	// TODO: fix
 	go s.SyncCacheAndMappings(ctx, userId, customerId)
 
 	return user, nil

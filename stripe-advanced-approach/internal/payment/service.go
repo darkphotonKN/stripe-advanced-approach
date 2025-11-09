@@ -85,11 +85,13 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	// --- Data Organization ---
 
 	if err != nil {
+		fmt.Printf("\nFailed to get customer from stripe: %+v\n\n", err)
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
 	}
 
 	customerJSON, err := json.MarshalIndent(customer, "", "  ")
 	if err != nil {
+		fmt.Printf("\nFailed to marshal customer data: %+v\n\n", err)
 		return fmt.Errorf("failed to marshal customer data: %w", err)
 	}
 
@@ -121,7 +123,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 		// Handle iteration error
 		if err := subIter.Err(); err != nil {
-			fmt.Printf("failed to fetch subscriptions from Stripe: %+v", err)
+			fmt.Printf("\nFailed to fetch subscriptions from Stripe: %+v\n\n", err)
 			return fmt.Errorf("failed to fetch subscriptions from Stripe: %w", err)
 		}
 
@@ -153,6 +155,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
+		fmt.Printf("\nError when attempting to start transaction: %+v\n\n", err)
 		return fmt.Errorf("error when attempting to start transaction: %+v", err)
 	}
 
@@ -195,7 +198,8 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		})
 
 		if err != nil {
-			return fmt.Errorf("\nError when attempting to batch upsert subscriptions during sync: %+v\n\n", err)
+			fmt.Printf("\nError when attempting to batch upsert subscriptions during sync: %+v\n\n", err)
+			return fmt.Errorf("error when attempting to batch upsert subscriptions during sync: %+v", err)
 		}
 	}
 
@@ -212,6 +216,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		})
 
 		if err != nil {
+			fmt.Printf("\nError when attempting to upsert payment during sync: %+v\n\n", err)
 			return err
 		}
 	}
@@ -299,6 +304,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	cacheStateJSON, err := json.Marshal(cacheState)
 
 	if err != nil {
+		fmt.Printf("\nFailed to marshal cacheState: %+v\n\n", err)
 		return fmt.Errorf("failed to marshal cacheState: %w", err)
 	}
 
@@ -306,6 +312,7 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 	err = s.cacheClient.Set(ctx, stripeUpdateCusWithCusIdKey, cacheStateJSON, 0)
 
 	if err != nil {
+		fmt.Printf("\nFailed to sync and store stripe data into cache: %+v\n\n", err)
 		return fmt.Errorf("failed to sync and store stripe data into cache: %w", err)
 	}
 
