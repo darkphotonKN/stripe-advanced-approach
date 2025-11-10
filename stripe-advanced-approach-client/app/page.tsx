@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import AuthWrapper from "@/components/AuthWrapper";
 import ProductSetup from "@/components/ProductSetup";
-import CustomerCreation from "@/components/CustomerCreation";
 import CardSaving from "@/components/CardSaving";
 import OneTimePayment from "@/components/OneTimePayment";
 import BuyProduct from "@/components/BuyProduct";
 import SubscribeToSite from "@/components/SubscribeToSite";
+import { customerAPI } from "@/lib/api";
 
 export default function Home() {
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
@@ -16,15 +16,26 @@ export default function Home() {
   );
   const [productsCreated, setProductsCreated] = useState(false);
   const [customerCreated, setCustomerCreated] = useState(false);
+  const [purchasedProducts, setPurchasedProducts] = useState<string[]>([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
 
   useEffect(() => {
-    const storedCustomerId = localStorage.getItem("stripeCustomerId");
-    const storedPriceId = localStorage.getItem("subscriptionPriceId");
+    const fetchCustomerId = async () => {
+      try {
+        const data = await customerAPI.getExisting();
+        if (data.exists && data.stripe_customer_id) {
+          setStripeCustomerId(data.stripe_customer_id);
+          setCustomerCreated(true);
+          localStorage.setItem("stripeCustomerId", data.stripe_customer_id);
+        }
+      } catch (err) {
+        console.log("No existing Stripe customer found");
+      }
+    };
 
-    if (storedCustomerId) {
-      setStripeCustomerId(storedCustomerId);
-      setCustomerCreated(true);
-    }
+    fetchCustomerId();
+
+    const storedPriceId = localStorage.getItem("subscriptionPriceId");
     if (storedPriceId) {
       setSubscriptionPriceId(storedPriceId);
       setProductsCreated(true);
@@ -36,10 +47,6 @@ export default function Home() {
     setProductsCreated(true);
   };
 
-  const handleCustomerCreated = (customerId: string) => {
-    setStripeCustomerId(customerId);
-    setCustomerCreated(true);
-  };
 
   const resetAll = () => {
     localStorage.clear();
@@ -56,113 +63,162 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Stripe Payment Flow POC
+              Stripe Advanced Payment System
             </h1>
-            <p className="text-gray-600 mb-4">
-              Following the exact POC flow: Products → Customer → Save Card →
-              Payment → Buy Product → Subscribe
-            </p>
+            <div className="mt-4 text-gray-600">
+              <div className="flex items-center justify-center gap-4 mb-2">
+                <span className="font-semibold text-blue-600">Admin Flow:</span>
+                <span>Create Products & Subscriptions</span>
+              </div>
+              <div className="flex items-center justify-center gap-4">
+                <span className="font-semibold text-green-600">User Flow:</span>
+                <span>Save Card → Subscribe or Purchase Products</span>
+              </div>
+            </div>
             <button
               onClick={resetAll}
-              className="text-sm text-red-500 hover:text-red-700"
+              className="mt-4 text-sm text-red-500 hover:text-red-700"
             >
               Reset Stripe Data
             </button>
           </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ProductSetup onProductsCreated={handleProductsCreated} />
+          {/* User Profile Section */}
+          {stripeCustomerId && (
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Customer ID */}
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white">
+                <div className="flex items-center space-x-3">
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium opacity-90">Customer ID</p>
+                    <p className="text-lg font-bold font-mono truncate">{stripeCustomerId}</p>
+                  </div>
+                </div>
+              </div>
 
-          <CustomerCreation
-            onCustomerCreated={handleCustomerCreated}
-          />
+              {/* Subscription Status */}
+              <div className="p-4 bg-gradient-to-r from-green-500 to-teal-600 rounded-lg text-white">
+                <div className="flex items-center space-x-3">
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium opacity-90">Subscription Status</p>
+                    <p className="text-lg font-bold">
+                      {subscriptionStatus?.has_access ? 'Pro Active' : 'No Subscription'}
+                    </p>
+                  </div>
+                </div>
+              </div>
 
-          <CardSaving customerId={stripeCustomerId} enabled={customerCreated} />
+              {/* Purchased Products */}
+              <div className="p-4 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg text-white">
+                <div className="flex items-center space-x-3">
+                  <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-medium opacity-90">Products Purchased</p>
+                    <p className="text-lg font-bold">{purchasedProducts.length} Items</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <OneTimePayment
-            customerId={stripeCustomerId}
-            enabled={customerCreated}
-          />
+        {/* Admin Flow Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-lg mr-3">Admin Flow</span>
+            Product & Subscription Setup
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProductSetup onProductsCreated={handleProductsCreated} />
+          </div>
+        </div>
 
-          <BuyProduct
-            customerId={stripeCustomerId}
-            enabled={true}
-          />
+        {/* User Flow Section */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
+            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-lg mr-3">User Flow</span>
+            Payment & Subscription Options
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CardSaving customerId={stripeCustomerId} enabled={true} />
 
-          <SubscribeToSite
-            enabled={customerCreated}
-          />
+            <SubscribeToSite
+              enabled={true}
+              onStatusUpdate={setSubscriptionStatus}
+            />
+
+            <BuyProduct
+              customerId={stripeCustomerId}
+              enabled={true}
+              onProductPurchased={(productName: string) => {
+                setPurchasedProducts(prev => [...prev, productName]);
+              }}
+            />
+          </div>
         </div>
 
         <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
           <h3 className="font-bold text-blue-900 mb-4">
-            Backend Implementation Requirements:
+            Backend API Endpoints:
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
             <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 1: Product Setup
+              <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">Admin</span>
+                Product Management
               </h4>
               <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/setup-products</li>
+                <li>• POST /api/payment/setup-products</li>
+                <li>• POST /api/payment/setup-subscription</li>
                 <li>• Creates Stripe products/prices</li>
-                <li>• Returns subscription_price_id</li>
+                <li>• Returns price_id for future use</li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 2: Customer Creation
+              <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">User</span>
+                Payment Methods
               </h4>
               <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/create-customer</li>
-                <li>• Creates Stripe customer</li>
-                <li>• Returns customer_id</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 3: Card Saving
-              </h4>
-              <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/save-card</li>
+                <li>• POST /api/payment/save-card</li>
                 <li>• Creates setup intent</li>
-                <li>• Returns client_secret</li>
+                <li>• Returns client_secret for Stripe Elements</li>
+                <li>• Saves card to customer for future use</li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 4: One-Time Payment
+              <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">User</span>
+                Subscription Flow
               </h4>
               <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/create-payment-intent</li>
-                <li>• Amount: 2000 ($20.00)</li>
-                <li>• Returns client_secret</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 5: Buy Product
-              </h4>
-              <ul className="text-blue-700 space-y-1">
-                <li>• GET /api/products</li>
-                <li>• POST /api/purchase-product</li>
-                <li>• Returns client_secret for payment</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Step 6: Subscribe to Site
-              </h4>
-              <ul className="text-blue-700 space-y-1">
-                <li>• POST /api/subscription/subscribe</li>
-                <li>• GET /api/subscription/status</li>
+                <li>• POST /api/payment/subscription/subscribe</li>
+                <li>• GET /api/payment/subscription/status</li>
+                <li>• Subscribes to pre-configured pro plan</li>
                 <li>• Returns subscription status & access</li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold text-blue-800 mb-3 flex items-center">
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded mr-2">User</span>
+                Product Purchases
+              </h4>
+              <ul className="text-blue-700 space-y-1">
+                <li>• GET /api/payment/products</li>
+                <li>• POST /api/payment/purchase-product</li>
+                <li>• One-time purchases with saved/new cards</li>
+                <li>• Returns client_secret for payment confirmation</li>
               </ul>
             </div>
 
@@ -179,9 +235,9 @@ export default function Home() {
 
           <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
             <p className="text-sm text-yellow-800">
-              <strong>Critical Flow:</strong> Products must be created first,
-              then customer, then all payment operations use the stored customer
-              ID. Frontend confirms all payments.
+              <strong>Key Features:</strong> Customers auto-created during signup. Two-flow system:
+              Admins create products, users choose between subscription (pro plan) or individual
+              product purchases. All payments use Stripe Elements for security.
             </p>
           </div>
         </div>

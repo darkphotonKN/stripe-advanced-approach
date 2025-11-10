@@ -105,19 +105,15 @@ export default function CardSaving({ customerId, enabled }: CardSavingProps) {
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-bold mb-4">
-        Step 3: Card Saving (Optional)
+        Step 1: Save Payment Method
       </h2>
 
-      {!enabled ? (
-        <p className="text-gray-500">
-          Create a customer first to save payment methods
-        </p>
-      ) : !customerId ? (
-        <p className="text-gray-500">Customer ID required</p>
+      {!customerId ? (
+        <p className="text-gray-500">Loading customer information...</p>
       ) : (
         <div>
           <p className="text-gray-600 mb-4">
-            Save a card to the customer for future use (optional)
+            Save a payment method for faster checkout (optional but recommended)
           </p>
 
           <Elements stripe={stripePromise}>

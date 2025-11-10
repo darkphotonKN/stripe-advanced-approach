@@ -51,7 +51,7 @@ export default function ProductSetup({ onProductsCreated }: ProductSetupProps) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Step 1: Product Setup</h2>
+      <h2 className="text-2xl font-bold mb-4">Create Products & Subscriptions</h2>
       
       {!productsCreated ? (
         <div>

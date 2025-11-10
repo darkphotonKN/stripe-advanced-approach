@@ -11,9 +11,10 @@ interface SubscriptionStatus {
 
 interface SubscribeToSiteProps {
   enabled: boolean;
+  onStatusUpdate?: (status: SubscriptionStatus) => void;
 }
 
-export default function SubscribeToSite({ enabled }: SubscribeToSiteProps) {
+export default function SubscribeToSite({ enabled, onStatusUpdate }: SubscribeToSiteProps) {
   const [activeTab, setActiveTab] = useState<"subscribe" | "content">("subscribe");
   const [loading, setLoading] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
@@ -30,6 +31,9 @@ export default function SubscribeToSite({ enabled }: SubscribeToSiteProps) {
     try {
       const status = await subscriptionAPI.getStatus();
       setSubscriptionStatus(status);
+      if (onStatusUpdate) {
+        onStatusUpdate(status);
+      }
     } catch (err: any) {
       console.error("Failed to fetch subscription status:", err);
     }
@@ -41,17 +45,14 @@ export default function SubscribeToSite({ enabled }: SubscribeToSiteProps) {
     setSuccess(null);
 
     try {
-      // Using a dummy price_id for now - you can replace with actual price ID
-      const response = await subscriptionAPI.subscribe("price_dummy_subscription");
+      // Call subscribe endpoint - no parameters needed
+      const response = await subscriptionAPI.subscribe();
 
-      if (response.checkout_url) {
-        // Redirect to Stripe checkout
-        window.location.href = response.checkout_url;
-      } else if (response.client_secret) {
-        setSuccess("Subscription initiated! Client secret received.");
-        // Refresh subscription status
-        await fetchSubscriptionStatus();
-      }
+      // Handle successful subscription
+      setSuccess("Successfully subscribed to Pro plan!");
+
+      // Refresh subscription status to show updated access
+      await fetchSubscriptionStatus();
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to create subscription");
       console.error(err);
@@ -63,15 +64,15 @@ export default function SubscribeToSite({ enabled }: SubscribeToSiteProps) {
   if (!enabled) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md opacity-50">
-        <h2 className="text-2xl font-bold mb-4">Step 6: Subscribe to Our Site</h2>
-        <p className="text-gray-500">Complete previous steps to enable subscription</p>
+        <h2 className="text-2xl font-bold mb-4">Step 2: Subscribe to Pro Plan</h2>
+        <p className="text-gray-500">Loading...</p>
       </div>
     );
   }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Step 6: Subscribe to Our Site</h2>
+      <h2 className="text-2xl font-bold mb-4">Step 2: Subscribe to Pro Plan</h2>
 
       {/* Tabs */}
       <div className="flex border-b mb-6">

@@ -22,14 +22,17 @@ interface Product {
 interface BuyProductProps {
   customerId: string | null;
   enabled: boolean;
+  onProductPurchased?: (productName: string) => void;
 }
 
 function ProductPurchaseForm({
   customerId,
   products,
+  onProductPurchased,
 }: {
   customerId: string;
   products: Product[];
+  onProductPurchased?: (productName: string) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -81,6 +84,9 @@ function ProductPurchaseForm({
         setPaymentStatus("failed");
       } else if (paymentIntent?.status === "succeeded") {
         setPaymentStatus("succeeded");
+        if (onProductPurchased && selectedProduct) {
+          onProductPurchased(selectedProduct.name);
+        }
       }
     } catch (err) {
       setError("Payment processing failed");
@@ -234,7 +240,7 @@ function ProductPurchaseForm({
   );
 }
 
-export default function BuyProduct({ customerId, enabled }: BuyProductProps) {
+export default function BuyProduct({ customerId, enabled, onProductPurchased }: BuyProductProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,7 +267,7 @@ export default function BuyProduct({ customerId, enabled }: BuyProductProps) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Step 5: Buy Product</h2>
+      <h2 className="text-2xl font-bold mb-4">Step 3: Purchase Products</h2>
 
       {loading ? (
         <p className="text-gray-500">Loading products...</p>
@@ -290,9 +296,10 @@ export default function BuyProduct({ customerId, enabled }: BuyProductProps) {
               <ProductPurchaseForm
                 customerId={customerId}
                 products={products}
+                onProductPurchased={onProductPurchased}
               />
             ) : (
-              <div> Customer Does Not Exist</div>
+              <div className="text-gray-500">Loading customer information...</div>
             )}
           </Elements>
         </div>

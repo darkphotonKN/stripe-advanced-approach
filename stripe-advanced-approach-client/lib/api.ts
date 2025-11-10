@@ -24,7 +24,7 @@ api.interceptors.request.use((config) => {
 
 export const productAPI = {
   setupProducts: async (name?: string, description?: string, price?: number) => {
-    const response = await api.post("/setup-products", {
+    const response = await api.post("/payment/setup-products", {
       name: name || "Example Product",
       description: description || "New Product",
       price: price || 1000, // Default $10.00
@@ -32,7 +32,7 @@ export const productAPI = {
     return response.data;
   },
   setupSubscription: async (name?: string, description?: string, price?: number) => {
-    const response = await api.post("/setup-subscription", {
+    const response = await api.post("/payment/setup-subscription", {
       name: name || "Example Subscription",
       description: description || "Monthly Subscription",
       price: price || 1000, // Default $10.00
@@ -40,14 +40,14 @@ export const productAPI = {
     return response.data;
   },
   getProducts: async () => {
-    const response = await api.get("/products");
+    const response = await api.get("/payment/products");
     return response.data;
   },
 };
 
 export const customerAPI = {
   create: async () => {
-    const response = await api.post("/create-customer");
+    const response = await api.post("/payment/create-customer");
     return response.data;
   },
   getExisting: async () => {
@@ -58,7 +58,7 @@ export const customerAPI = {
 
 export const paymentMethodAPI = {
   saveCard: async (customerId: string) => {
-    const response = await api.post("/save-card", {
+    const response = await api.post("/payment/save-card", {
       customer_id: customerId,
     });
     return response.data;
@@ -67,21 +67,21 @@ export const paymentMethodAPI = {
 
 export const paymentAPI = {
   createPaymentIntent: async (amount: number, customerId: string) => {
-    const response = await api.post("/create-payment-intent", {
+    const response = await api.post("/payment/create-payment-intent", {
       amount,
       customer_id: customerId,
     });
     return response.data;
   },
   purchaseProduct: async (productId: string, customerId: string) => {
-    const response = await api.post("/purchase-product", {
+    const response = await api.post("/payment/purchase-product", {
       product_id: productId,
       customer_id: customerId,
     });
     return response.data;
   },
   subscribeToProduct: async (productId: string, customerId: string) => {
-    const response = await api.post("/subscribe-to-product", {
+    const response = await api.post("/payment/subscribe-to-product", {
       product_id: productId,
       customer_id: customerId,
     });
@@ -91,21 +91,19 @@ export const paymentAPI = {
 
 export const subscriptionAPI = {
   create: async (priceId: string, customerId: string, email: string) => {
-    const response = await api.post("/create-subscription", {
+    const response = await api.post("/payment/create-subscription", {
       price_id: priceId,
       customer_id: customerId,
       email,
     });
     return response.data;
   },
-  subscribe: async (priceId: string) => {
-    const response = await api.post("/subscription/subscribe", {
-      price_id: priceId,
-    });
+  subscribe: async () => {
+    const response = await api.post("/payment/subscription/subscribe");
     return response.data;
   },
   getStatus: async () => {
-    const response = await api.get("/subscription/status");
+    const response = await api.get("/payment/subscription/status");
     return response.data;
   },
 };
