@@ -133,13 +133,16 @@ func (s *service) Authenticate(ctx context.Context, email, password string) (*Us
 
 	// don't stop the flow, but log the failure of cache updates
 	// BUG: still not working
-	// TODO: fix
+	// TODO: fix - not even reaching this point here
+	fmt.Println("Syncing Mappings for Cache OUTSIDE")
 	go s.SyncCacheAndMappings(ctx, userId, customerId)
 
 	return user, nil
 }
 
 func (s *service) SyncCacheAndMappings(ctx context.Context, userId uuid.UUID, customerId string) {
+	fmt.Println("Syncing Mappings for Cache")
+
 	// updates cache with customerId to userId mapping
 	err := s.paymentService.AddCacheUserIdToCusId(ctx, userId, customerId)
 

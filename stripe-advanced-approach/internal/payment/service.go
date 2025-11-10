@@ -89,15 +89,20 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
 	}
 
-	customerJSON, err := json.MarshalIndent(customer, "", "  ")
-	if err != nil {
-		fmt.Printf("\nFailed to marshal customer data: %+v\n\n", err)
-		return fmt.Errorf("failed to marshal customer data: %w", err)
-	}
+	// -- logging --
 
-	fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
+	// customerJSON, err := json.MarshalIndent(customer, "", "  ")
+	//
+	// if err != nil {
+	// 	fmt.Printf("\nFailed to marshal customer data: %+v\n\n", err)
+	// 	return fmt.Errorf("failed to marshal customer data: %w", err)
+	// }
+	//
+	// fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
+	//
 
-	// TODO: update with new methods
+	// -- end logging --
+
 	stripeUpdateCusWithCusIdKey := s.cacheClient.GetCustomerDataFromCustomerIdKey(customerId)
 
 	// -- subscriptions --
@@ -356,6 +361,7 @@ func (s *service) GetCachedCusIdFromUserId(ctx context.Context, userId uuid.UUID
 	customerId, err := s.cacheClient.Get(ctx, key)
 
 	// doesn't exist in cache, error, cache is supposed to have a mapping from this point
+	fmt.Printf("key: %s\n", key)
 	if err == redislib.Nil {
 		return "", fmt.Errorf("No customerId exists for this userId %s", userId)
 	}

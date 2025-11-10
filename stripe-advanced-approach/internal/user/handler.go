@@ -87,6 +87,7 @@ func (h *Handler) SignIn(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("user handler SignIn - Running Authenticate service method")
 	user, err := h.service.Authenticate(c.Request.Context(), req.Email, req.Password)
 
 	if err != nil {
