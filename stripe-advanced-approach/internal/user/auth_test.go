@@ -1,65 +1,35 @@
-package user
+package user_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil/fixtures"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Mock payment service for testing
-type mockPaymentService struct{}
-
-func (m *mockPaymentService) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
-	return nil
-}
-
-func (m *mockPaymentService) AddCacheCusIdToUserId(ctx context.Context, customerId string, userId uuid.UUID) error {
-	return nil
-}
-
-func (m *mockPaymentService) CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error) {
-	return "cus_test_mock", nil
-}
-
-func (m *mockPaymentService) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
-	return nil
-}
-
 // TestSignIn tests the signin functionality with full service integration
 func TestSignIn(t *testing.T) {
-	suite := testutil.SetupBasicTestSuite(t)
+	suite := fixtures.SetupTestSuite(t)
 	defer suite.CleanupFunc()
-
-	// Setup services with DI manually to avoid import cycles
-	userRepo := NewRepository(suite.DB)
-	userService := NewService(userRepo)
-
-	// For testing, create mock payment service interface
-	mockPaymentService := &mockPaymentService{}
-	userService.SetPaymentService(mockPaymentService)
-
-	userHandler := NewHandler(userService)
 
 	// Setup test router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/signin", userHandler.SignIn)
+	router.POST("/signin", suite.UserHandler.SignIn)
 
 	// Use test user from suite
 	testEmail := suite.TestUser.Email
 	testPassword := suite.TestUser.Password
 
 	// Prepare signin request
-	requestBody := SignInRequest{
+	requestBody := user.SignInRequest{
 		Email:    testEmail,
 		Password: testPassword,
 	}

@@ -1,4 +1,4 @@
-package testutil
+package fixtures
 
 import (
 	"context"
@@ -6,7 +6,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/payment"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
@@ -21,17 +23,17 @@ type TestSuite struct {
 	RedisClient *redis.Client
 	CleanupFunc func()
 
-	// Services and repositories - all as interfaces to avoid import cycles
-	UserService    interface{}
-	PaymentService interface{}
+	// Services (fully configured with DI)
+	UserService    *user.Service
+	PaymentService *payment.Service
 
 	// Repositories
-	UserRepo    interface{}
-	PaymentRepo interface{}
+	UserRepo    user.Repository
+	PaymentRepo payment.Repository
 
 	// Handlers
-	UserHandler    interface{}
-	PaymentHandler interface{}
+	UserHandler    *user.Handler
+	PaymentHandler *payment.Handler
 
 	// Test Data
 	TestUser TestUser
@@ -44,12 +46,12 @@ type TestUser struct {
 	Password   string
 }
 
-// SetupBasicTestSuite creates basic test infrastructure (DB, Redis)
-func SetupBasicTestSuite(t *testing.T) *TestSuite {
+// SetupTestSuite creates fully configured test environment with all services
+func SetupTestSuite(t *testing.T) *TestSuite {
 	t.Helper()
 
 	// Load environment variables
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load("../../../.env"); err != nil {
 		t.Log("No .env file found, using environment variables")
 	}
 
@@ -81,7 +83,24 @@ func SetupBasicTestSuite(t *testing.T) *TestSuite {
 	// Setup Redis client
 	redisClient := redis.NewClient()
 
-	// Payment repository will be created in individual tests
+	// Setup repositories
+	userRepo := user.NewRepository(db)
+	paymentRepo := payment.NewRepository(db)
+
+	// Setup services with proper dependency injection
+	// Step 1: Create user service first (without payment service)
+	userService := user.NewService(userRepo)
+
+	// Step 2: Create payment service (can accept user service)
+	stripeProcessor := payment.NewStripeProcessor()
+	paymentService := payment.NewService(paymentRepo, userService, stripeProcessor, redisClient)
+
+	// Step 3: Inject payment service back into user service (resolves circular dependency)
+	userService.SetPaymentService(paymentService)
+
+	// Setup handlers
+	userHandler := user.NewHandler(userService)
+	paymentHandler := payment.NewHandler(paymentService)
 
 	// Create test user data
 	testUser := TestUser{
@@ -102,14 +121,22 @@ func SetupBasicTestSuite(t *testing.T) *TestSuite {
 		RedisClient: redisClient,
 		CleanupFunc: cleanupFunc,
 
+		UserService:    userService,
+		PaymentService: paymentService,
+
+		UserRepo:    userRepo,
+		PaymentRepo: paymentRepo,
+
+		UserHandler:    userHandler,
+		PaymentHandler: paymentHandler,
+
 		TestUser: testUser,
 	}
 }
 
-// SetupBasicTestSuiteWithCustomUser creates test suite with custom user data
-func SetupBasicTestSuiteWithCustomUser(t *testing.T, customUser TestUser) *TestSuite {
-	suite := SetupBasicTestSuite(t)
+// SetupTestSuiteWithCustomUser creates test suite with custom user data
+func SetupTestSuiteWithCustomUser(t *testing.T, customUser TestUser) *TestSuite {
+	suite := SetupTestSuite(t)
 	suite.TestUser = customUser
 	return suite
 }
-
