@@ -4,62 +4,59 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Test SignIn functionality
+// Mock payment service for testing
+type mockPaymentService struct{}
+
+func (m *mockPaymentService) AddCacheUserIdToCusId(ctx context.Context, userId uuid.UUID, customerId string) error {
+	return nil
+}
+
+func (m *mockPaymentService) AddCacheCusIdToUserId(ctx context.Context, customerId string, userId uuid.UUID) error {
+	return nil
+}
+
+func (m *mockPaymentService) CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error) {
+	return "cus_test_mock", nil
+}
+
+func (m *mockPaymentService) SyncStripeDataToStorage(ctx context.Context, customerId string) error {
+	return nil
+}
+
+// TestSignIn tests the signin functionality with full service integration
 func TestSignIn(t *testing.T) {
-	// Load environment variables
-	if err := godotenv.Load("../../.env"); err != nil {
-		t.Log("No .env file found, using environment variables")
-	}
+	suite := testutil.SetupBasicTestSuite(t)
+	defer suite.CleanupFunc()
 
-	// Setup database connection
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
+	// Setup services with DI manually to avoid import cycles
+	userRepo := NewRepository(suite.DB)
+	userService := NewService(userRepo)
 
-	dsn := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	// For testing, create mock payment service interface
+	mockPaymentService := &mockPaymentService{}
+	userService.SetPaymentService(mockPaymentService)
 
-	db, err := sqlx.Open("postgres", dsn)
-	if err != nil {
-		t.Fatalf("Failed to connect to database: %v", err)
-	}
-	defer db.Close()
-
-	// Setup repository
-	repo := NewRepository(db)
-
-	// Setup service
-	service := NewService(repo)
-
-	// Setup handler
-	handler := NewHandler(service)
+	userHandler := NewHandler(userService)
 
 	// Setup test router
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	router.POST("/signin", handler.SignIn)
+	router.POST("/signin", userHandler.SignIn)
 
-	// Test user credentials
-	testEmail := "nov7subscriber@test.com"
-	testPassword := "123456"
+	// Use test user from suite
+	testEmail := suite.TestUser.Email
+	testPassword := suite.TestUser.Password
 
 	// Prepare signin request
 	requestBody := SignInRequest{
@@ -97,11 +94,3 @@ func TestSignIn(t *testing.T) {
 
 	t.Logf("SignIn test passed for user: %s", testEmail)
 }
-
-// Mock payment service for testing
-type mockPaymentService struct{}
-
-func (m *mockPaymentService) CreateCustomer(ctx context.Context, userId uuid.UUID, email string) (string, error) {
-	return "cus_mock123", nil
-}
-

@@ -18,7 +18,7 @@ func NewRepository(db *sqlx.DB) *repository {
 
 func (r *repository) Create(ctx context.Context, user *User) (*User, error) {
 	fmt.Printf("repo create inc user: %+v\n", *user)
-	fmt.Printf("repo create inc user.email\n user.password %s \nuser.name: %+v\n", user.Email, user.Password, user.Name)
+	fmt.Printf("repo create inc user.email %s\n user.password %s \nuser.name: %+v\n", user.Email, user.Password, user.Name)
 
 	query := `
 		INSERT INTO users (email, password, name, created_at, updated_at)

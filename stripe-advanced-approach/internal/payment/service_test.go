@@ -2,18 +2,26 @@ package payment
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/redis"
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/user"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil"
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
-	_ "github.com/lib/pq"
-	"github.com/stripe/stripe-go/v82"
 )
+
+// Mock user service for testing
+type mockUserService struct{}
+
+func (m *mockUserService) GetByID(ctx context.Context, id uuid.UUID) (interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockUserService) GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockUserService) UpdateStripeCustomer(ctx context.Context, userId uuid.UUID, customerId string) error {
+	return nil
+}
 
 type PaymentTestSuite struct {
 	ctx             context.Context
@@ -34,65 +42,38 @@ type TestUser struct {
 	customerId string
 }
 
+// setupTestSuite creates a legacy PaymentTestSuite for backward compatibility
 func setupTestSuite(t *testing.T, testUser TestUser) *PaymentTestSuite {
-	t.Helper()
-
-	if err := godotenv.Load("../../.env"); err != nil {
-		t.Log("No .env file found, using environment variables")
+	// Create custom test user for shared setup
+	customTestUser := testutil.TestUser{
+		UserID:     testUser.userId,
+		CustomerID: testUser.customerId,
+		Email:      "test@example.com",
+		Password:   "password123",
 	}
 
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
-	if stripe.Key == "" {
-		t.Skip("STRIPE_SECRET_KEY not set, skipping test")
-	}
+	sharedSuite := testutil.SetupBasicTestSuiteWithCustomUser(t, customTestUser)
 
-	// Setup database connection
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbName := os.Getenv("DB_NAME")
+	// Setup payment-specific services
+	repo := NewRepository(sharedSuite.DB)
+	stripeProcessor := NewStripeProcessor()
 
-	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	// Create mock user service
+	mockUserService := &mockUserService{}
 
-	db, err := sqlx.Connect("postgres", dsn)
-	if err != nil {
-		t.Fatal("Failed to connect to database:", err)
-	}
+	// Create payment service
+	paymentService := NewService(repo, mockUserService, stripeProcessor, sharedSuite.RedisClient)
 
-	redisClient := redis.NewClient()
-
-	ctx := context.Background()
-	if err := redisClient.Connect(ctx); err != nil {
-		t.Fatal("Failed to connect to Redis:", err)
-	}
-
-	testRepo := NewRepository(db)
-	testUserRepo := user.NewRepository(db)
-	testUserServ := user.NewService(testUserRepo)
-	testStripeProcessor := NewStripeProcessor()
-
-	service := NewService(testRepo, testUserServ, testStripeProcessor, redisClient)
-
-	cleanup := func() {
-		if err := db.Close(); err != nil {
-			t.Logf("Failed to close database connection: %v", err)
-		}
-		if err := redisClient.Close(); err != nil {
-			t.Logf("Failed to close Redis connection: %v", err)
-		}
-	}
-
+	// Create legacy suite for backward compatibility
 	return &PaymentTestSuite{
-		ctx:             ctx,
-		service:         service,
-		redisClient:     redisClient,
-		repo:            testRepo,
-		userService:     testUserServ,
-		stripeProcessor: testStripeProcessor,
-		db:              db,
-		cleanupFunc:     cleanup,
+		ctx:             sharedSuite.Ctx,
+		service:         paymentService,
+		redisClient:     sharedSuite.RedisClient,
+		repo:            repo,
+		userService:     mockUserService,
+		stripeProcessor: stripeProcessor,
+		db:              sharedSuite.DB,
+		cleanupFunc:     sharedSuite.CleanupFunc,
 		testUser:        testUser,
 	}
 }
