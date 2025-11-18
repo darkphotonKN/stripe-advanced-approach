@@ -96,6 +96,14 @@ func (s *service) List(ctx context.Context) ([]User, error) {
 	return s.repo.List(ctx)
 }
 
+func (s *service) GetSubscriptionStatus(ctx context.Context, userID uuid.UUID) (bool, error) {
+	user, err := s.repo.GetByID(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	return user.Subscribed, nil
+}
+
 func (s *service) Update(ctx context.Context, id uuid.UUID, user *User) error {
 	if err := user.Validate(); err != nil {
 		return err

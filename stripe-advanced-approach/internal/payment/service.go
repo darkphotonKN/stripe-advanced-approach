@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/interfaces"
 	"github.com/darkphotonKN/stripe-advanced-approach/internal/model"
@@ -40,6 +41,7 @@ type PaymentUserService interface {
 	UpdateStripeCustomer(ctx context.Context, userID uuid.UUID, stripeCustomerID string) error
 	GetByStripeCustomerID(ctx context.Context, stripeCustomerID string) (*user.User, error)
 	Update(ctx context.Context, userID uuid.UUID, user *user.User) error
+	GetSubscriptionStatus(ctx context.Context, userID uuid.UUID) (bool, error)
 }
 
 func NewService(repo Repository, userService PaymentUserService, paymentProcessor PaymentProcessor, cacheClient interfaces.Cache) *service {
@@ -373,26 +375,16 @@ func (s *service) GetStripeData(ctx context.Context, customerId string) (*Stripe
 
 	// if it doesn't we sync the data right there
 	if err == redislib.Nil {
+
 		fmt.Printf("Customer data doesn't exist in cache.\n")
 
-		// sync data to cache
-		err := s.SyncStripeDataToStorage(ctx, customerId)
-		if err != nil {
-			fmt.Printf("failed to resync method during attempt to get cached data.\n")
-			return nil, err
-		}
+		// sync from database
 
-		// attempt to get the data again after syncing
-		// TODO: fix
-		// BUG: currently keeps recursing
-		fmt.Println("STILL NO INJECTED AGAIN AND RESYNCING VIA RECURSION")
+		// log other exceptions
+		log.Printf("error when attempting to get cache data for customerID %s\nerr was:\n%+v\n", customerId, err)
+
 		return s.GetStripeData(ctx, customerId)
-	}
 
-	// handle other exceptions
-	if err != nil {
-		fmt.Printf("error when attempting to get cache data for customerID %s\nerr was:\n%+v\n", customerId, err)
-		return nil, err
 	}
 
 	// data already exists, just unmarshal and return it
@@ -614,11 +606,12 @@ func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UU
 	// get customerId from cache
 	cusId, err := s.GetCachedCusIdFromUserId(ctx, userId)
 
+	fmt.Printf("\ncusId from cache: \n%+v\n\n", cusId)
+
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO:
 	// get subscription status
 	stripeCacheData, err := s.GetStripeData(ctx, cusId)
 
@@ -627,10 +620,9 @@ func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UU
 }
 
 // GetSubscriptionStatus retrieves the user's subscription status
-func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*SubscriptionStatusResponse, error) {
-	// TODO: complete implementation
-	_, err := s.GetSubscriptionStatusCache(ctx, userId)
-	return nil, err
+func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*bool, error) {
+	subStatus, err := s.userService.GetSubscriptionStatus(ctx, userId)
+	return &subStatus, err
 }
 
 // Helper functions to convert Stripe types to our cache types
