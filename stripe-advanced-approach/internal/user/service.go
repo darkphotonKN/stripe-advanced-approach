@@ -76,7 +76,6 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	// sync to cache
 	go s.SyncCacheAndMappings(ctx, createdUser.ID, customerID)
 	return nil
-
 }
 
 func (s *service) GetByID(ctx context.Context, id uuid.UUID) (*User, error) {

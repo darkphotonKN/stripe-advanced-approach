@@ -3,36 +3,47 @@ package payment_test
 import (
 	"testing"
 
-	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil/fixtures"
+	"github.com/darkphotonKN/stripe-advanced-approach/internal/testutil"
 	"github.com/google/uuid"
 )
 
 // Test user meta data
-var testUser = fixtures.TestUser{
+var testUserData = testutil.TestUser{
 	UserID:     uuid.MustParse("7fdf18f8-78b6-4ca8-b2dd-d6dfb8286fe7"),
 	CustomerID: "cus_TNYXOoNL2FlSGA",
 	Email:      "test@example.com",
 	Password:   "password123",
 }
 
-// Tests
-
-func TestSyncStripeDataToStorage(t *testing.T) {
-	suite := fixtures.SetupTestSuiteWithCustomUser(t, testUser)
+// TestSaveCard tests the SaveCard functionality which internally uses SyncStripeDataToStorage
+func TestSaveCard(t *testing.T) {
+	// Setup full test suite with custom user data
+	suite := testutil.SetupFullWithUser(t, testUserData)
 	defer suite.CleanupFunc()
 
-	err := suite.PaymentService.SyncStripeDataToStorage(suite.Ctx, testUser.CustomerID)
+	// Test SaveCard which internally calls SyncStripeDataToStorage
+	clientSecret, err := suite.PaymentService.SaveCard(suite.Ctx, testUserData.CustomerID)
+
 	if err != nil {
-		t.Logf("errored when attempting to sync stripe data to storage: %v", err)
+		t.Logf("Error saving card (expected for test customer): %v", err)
+	} else {
+		t.Logf("Got client secret: %s", clientSecret)
 	}
 }
 
-func TestGetStripeData(t *testing.T) {
-	suite := fixtures.SetupTestSuiteWithCustomUser(t, testUser)
+// TestGetSubscriptionStatus tests getting subscription status which may use cached data
+func TestGetSubscriptionStatus(t *testing.T) {
+	// Setup full test suite with custom user data
+	suite := testutil.SetupFullWithUser(t, testUserData)
 	defer suite.CleanupFunc()
 
-	_, err := suite.PaymentService.GetStripeData(suite.Ctx, testUser.CustomerID)
+	// Test getting subscription status
+	status, err := suite.PaymentService.GetSubscriptionStatus(suite.Ctx, testUserData.UserID)
+
 	if err != nil {
-		t.Logf("Failed to get cached data: %v", err)
+		t.Logf("Error getting subscription status: %v", err)
+	} else {
+		t.Logf("Subscription status: %+v", status)
 	}
 }
+
