@@ -58,7 +58,7 @@ type FullSuite struct {
 }
 
 // SetupBase creates basic test infrastructure without any service dependencies
-// Use this for simple tests that don't need full service setup
+// use this for simple tests that don't need full service setup
 func SetupBase(t *testing.T) *BaseSuite {
 	t.Helper()
 
@@ -96,10 +96,11 @@ func SetupBase(t *testing.T) *BaseSuite {
 	redisClient := redis.NewClient()
 
 	// Create test user data
+	newUserId := uuid.New().String()[:8]
 	testUser := TestUser{
 		UserID:     uuid.New(),
-		CustomerID: "cus_test_" + uuid.New().String()[:8],
-		Email:      "test@example.com",
+		CustomerID: "cus_test_" + newUserId,
+		Email:      fmt.Sprintf("test%s@example.com", newUserId),
 		Password:   "testpass123",
 	}
 
@@ -182,10 +183,11 @@ func SetupFull(t *testing.T) *FullSuite {
 	paymentHandler := payment.NewHandler(paymentService)
 
 	// Create test user data
+	newUserId := uuid.New().String()[:8]
 	testUser := TestUser{
 		UserID:     uuid.New(),
-		CustomerID: "cus_test_" + uuid.New().String()[:8],
-		Email:      "test@example.com",
+		CustomerID: "cus_test_" + newUserId,
+		Email:      fmt.Sprintf("test%s@example.com", newUserId),
 		Password:   "testpass123",
 	}
 
@@ -219,3 +221,4 @@ func SetupFullWithUser(t *testing.T, customUser TestUser) *FullSuite {
 	suite.TestUser = customUser
 	return suite
 }
+

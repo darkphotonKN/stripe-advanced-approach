@@ -89,20 +89,6 @@ func (s *service) SyncStripeDataToStorage(ctx context.Context, customerId string
 		return fmt.Errorf("failed to get customer from stripe: %w", err)
 	}
 
-	// -- logging --
-
-	// customerJSON, err := json.MarshalIndent(customer, "", "  ")
-	//
-	// if err != nil {
-	// 	fmt.Printf("\nFailed to marshal customer data: %+v\n\n", err)
-	// 	return fmt.Errorf("failed to marshal customer data: %w", err)
-	// }
-	//
-	// fmt.Printf("\n=== Stripe Customer Data ===\n%s\n============================\n\n", string(customerJSON))
-	//
-
-	// -- end logging --
-
 	stripeUpdateCusWithCusIdKey := s.cacheClient.GetCustomerDataFromCustomerIdKey(customerId)
 
 	// -- subscriptions --
