@@ -602,27 +602,41 @@ func (s *service) ProcessWebhookEvent(ctx context.Context, event *stripe.Event) 
 * for utilizing cache for checking the user's subscription status to the pro
 * plan of this site
 **/
-func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*model.SubscriptionStatus, error) {
+func (s *service) GetSubscriptionStatusCache(ctx context.Context, userId uuid.UUID) (*bool, error) {
 	// get customerId from cache
 	cusId, err := s.GetCachedCusIdFromUserId(ctx, userId)
-
-	fmt.Printf("\ncusId from cache: \n%+v\n\n", cusId)
 
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("\ncusId from cache: \n%+v\n\n", cusId)
 
 	// get subscription status
 	stripeCacheData, err := s.GetStripeData(ctx, cusId)
 
-	fmt.Printf("\nstripeCachData when getting subscription status: \n%+v\n\n", stripeCacheData)
+	fmt.Printf("\nstripeCachData when getting subscription status cache: \n%+v\n\n", stripeCacheData)
+
 	return nil, nil
 }
 
-// GetSubscriptionStatus retrieves the user's subscription status
+/**
+* retrieves the user's subscription status from cache or database depending on availability.
+**/
 func (s *service) GetSubscriptionStatus(ctx context.Context, userId uuid.UUID) (*bool, error) {
-	subStatus, err := s.userService.GetSubscriptionStatus(ctx, userId)
-	return &subStatus, err
+	subStatusCache, err := s.GetSubscriptionStatusCache(ctx, userId)
+
+	if !*subStatusCache {
+		subStatus, err := s.userService.GetSubscriptionStatus(ctx, userId)
+
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Printf("\nsubStatus when getting subscription status: \n%+v\n\n", subStatus)
+		return &subStatus, nil
+	}
+
+	return subStatusCache, err
 }
 
 // Helper functions to convert Stripe types to our cache types
